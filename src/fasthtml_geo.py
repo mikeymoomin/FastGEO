@@ -17,8 +17,8 @@ from datetime import datetime
 from collections import Counter
 from typing import Any, Union, List, Dict, Tuple
 
-from bs4 import BeautifulSoup  # type: ignore
-from fasthtml.common import *  # FastTags + NotStr, Div, etc.
+from bs4 import BeautifulSoup 
+from fasthtml.common import * 
 
 __all__ = [
     "LLMBlock",
