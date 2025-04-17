@@ -272,7 +272,7 @@ pip install fasthtml beautifulsoup4
 ## Quick Start
 
 ```python
-from seo_llm_optimizer import LLMBlock, SemanticArticle, FAQOptimizer
+from fasthtml_geo import LLMBlock, SemanticArticle, FAQOptimizer
 
 # Optimize a simple element
 button = LLMBlock(

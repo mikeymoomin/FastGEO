@@ -1,330 +1,206 @@
+"""fasthtml_geo – draft 3
+====================================
+Drop the brittle inheritance on FastHTML internals.  The documented
+extension pattern is either:
+  • a *function* that returns FastTags, or
+  • a *dataclass* that implements `__ft__()` and returns FastTags.
+
+This version converts every helper to a simple dataclass with `__ft__`.
+We wrap raw HTML with `NotStr` so FastHTML will not escape it.
+"""
+
 from __future__ import annotations
 
-import json
-import math
-import typing as _t
-from collections import Counter
+import json, math
+from dataclasses import dataclass
 from datetime import datetime
+from collections import Counter
+from typing import Any, Union, List, Dict, Tuple
 
-from bs4 import BeautifulSoup  # type: ignore – install "beautifulsoup4"
-from fasthtml import Component  # FastHTML base class
+from bs4 import BeautifulSoup  # type: ignore
+from fasthtml.common import *  # FastTags + NotStr, Div, etc.
 
 __all__ = [
-    "to_json",
     "LLMBlock",
     "SemanticArticle",
     "FAQOptimizer",
     "TechnicalTermOptimizer",
     "ContentChunker",
     "CitationOptimizer",
+    "information_density",
 ]
 
 # ---------------------------------------------------------------------------
-# Helpers
+# helpers
 # ---------------------------------------------------------------------------
 
-def to_json(obj: _t.Any) -> str:
-    """This function convernts Python str's to JSON Strings"""
+def _json(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
 
+def _script(j: Dict[str, Any]) -> str:
+    return f'<script type="application/ld+json">{_json(j)}</script>'
+
 # ---------------------------------------------------------------------------
-# Core block – the low‑level primitive everything else builds on
+# low‑level primitive
 # ---------------------------------------------------------------------------
 
+@dataclass
+class LLMBlock:
+    element: Any         # FT component or raw HTML
+    ctx: str
+    role: str = "summary"
+    schema_type: str | None = None
 
-class LLMBlock(Component):
-    """Wrap *any* FT element and attach additional LLM context via JSON‑LD.
+    def __ft__(self):
+        """Wrap *any* FT element and attach additional LLM context via JSON‑LD.
 
-    This function takes any HTML and allows the user to add machine readable context to it via JSON-LD
-
-    Parameters
-    ----------
-    element : Component | str
-        The visible FastHTML element. Can be an existing FT component or
-        a raw HTML string.
-    ctx : str
-        Human‑authored context that should guide an LLM (e.g. tone,
-        summary, hidden alt‑text). Keep it concise and *truthful.*
-    role : str, default "summary"
-        Free‑text label ("summary", "altText", "qa", …) – helps future
-        renderers treat different context types differently.
-    schema_type : str | None
-        Optional schema.org @type to embed; if *None* we default to
-        "WebPageElement".
+        Parameters
+        ----------
+        element : Component | str
+            The visible FastHTML element. Can be an existing FT component or
+            a raw HTML string.
+        ctx : str
+            Human‑authored context that should guide an LLM (e.g. tone,
+            summary, hidden alt‑text). Keep it concise and *truthful.*
+        role : str, default "summary"
+            Free‑text label ("summary", "altText", "qa", …) – helps future
+            renderers treat different context types differently.
+        schema_type : str | None
+            Optional schema.org @type to embed; if *None* we default to
+            "WebPageElement".
     """
-
-    def __init__(
-        self,
-        element: _t.Union[Component, str],
-        *,
-        ctx: str,
-        role: str = "summary",
-        schema_type: str | None = None,
-    ) -> None:
-        self.element = element
-        self.ctx = ctx.strip()
-        self.role = role
-        self.schema_type = schema_type or "WebPageElement"
-
-    # FastHTML calls `render()` to get HTML
-    def render(self) -> str: 
-        visible = str(self.element)
         json_ld = {
             "@context": "https://schema.org",
-            "@type": self.schema_type,
+            "@type": self.schema_type or "WebPageElement",
             "role": self.role,
             "dateCreated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
-            "llmContext": self.ctx,
+            "llmContext": self.ctx.strip(),
         }
-        script = (
-            '<script type="application/ld+json">' + to_json(json_ld) + "</script>"
+        # Return a small fragment: <element> ... <script>JSON‑LD</script>
+        return Group(
+            self.element,
+            NotStr(_script(json_ld)),
         )
-        return visible + script
-
 
 # ---------------------------------------------------------------------------
-# GEO‑specific higher‑level components
+# higher‑level helpers
 # ---------------------------------------------------------------------------
 
+@dataclass
+class SemanticArticle:
+    title: str
+    sections: List[Dict[str, Any]]
+    metadata: Dict[str, Any] | None = None
 
-class SemanticArticle(Component):
-    """Full article wrapper with headline, sections & metadata.
-    
-    Creates JSON-LD schema for Article type
-    Builds HTML structure with semantic elements
-    Adds metadata as meta tags
-    Returns the complete article markup
-
-    """
-
-    def __init__(
-        self,
-        *,
-        title: str,
-        sections: list[dict[str, _t.Any]],
-        metadata: dict[str, _t.Any] | None = None,
-    ) -> None:
-        self.title = title
-        self.sections = sections
-        self.metadata = metadata or {}
-
-    def render(self) -> str:
+    def __ft__(self):
         schema = {
             "@context": "https://schema.org",
             "@type": "Article",
             "headline": self.title,
             "articleSection": [s["heading"] for s in self.sections],
-            **self.metadata,
+            **(self.metadata or {}),
         }
-        html_parts: list[str] = [
-            '<article itemscope itemtype="https://schema.org/Article">',
-            f"  <h1 itemprop=\"headline\">{self.title}</h1>",
-        ]
-        if self.metadata:
-            html_parts.append("  <div class=\"article-metadata\">")
-            for k, v in self.metadata.items():
-                html_parts.append(f"    <meta itemprop=\"{k}\" content=\"{v}\">")
-            html_parts.append("  </div>")
+        art = [H1(self.title)]
         for sec in self.sections:
             lvl = sec.get("level", 2)
-            html_parts.append("  <section>")
-            html_parts.append(
-                f"    <h{lvl} itemprop=\"about\">{sec['heading']}</h{lvl}>"
-            )
-            html_parts.append("    <div itemprop=\"articleBody\">" + sec["content"] + "</div>")
-            html_parts.append("  </section>")
-        html_parts.append("</article>")
-        return '<script type="application/ld+json">' + to_json(schema) + "</script>" + "\n" + "\n".join(html_parts)
+            art.append(H1(sec["heading"], level=lvl))
+            art.append(Div(sec["content"], itemprop="articleBody"))
+        container = Article(*art,
+                            itemscope=True,
+                            itemtype="https://schema.org/Article")
+                            # Convert the FT tree to real markup
+        html_body = to_xml(container)
+        return NotStr(_script(schema) + html_body)
 
 
-class FAQOptimizer(Component):
-    """Question‑answer blocks with FAQPage schema.
-    
-    Takes a list of Q&A pairs and:
+        return NotStr(_script(schema) + str(container))
 
-    Creates FAQPage schema
-    Renders each Q&A as a div structure
-    Assigns IDs for easier reference
-    
-    """
+@dataclass
+class FAQOptimizer:
+    qa_pairs: List[Tuple[str, str]]
 
-    def __init__(self, qa: list[tuple[str, str]]) -> None:
-        self.qa = qa
-
-    def render(self) -> str:
+    def __ft__(self):
         schema = {
             "@context": "https://schema.org",
             "@type": "FAQPage",
             "mainEntity": [
-                {
-                    "@type": "Question",
-                    "name": q,
-                    "acceptedAnswer": {"@type": "Answer", "text": a},
-                }
-                for q, a in self.qa
+                {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}}
+                for q, a in self.qa_pairs
             ],
         }
-        html = ["<section class=\"faq\">"]
-        for i, (q, a) in enumerate(self.qa):
-            html.extend(
-                [
-                    f"  <div class=\"faq-item\" id=\"faq-{i}\">",
-                    f"    <h3 class=\"faq-question\">{q}</h3>",
-                    f"    <div class=\"faq-answer\">{a}</div>",
-                    "  </div>",
-                ]
-            )
-        html.append("</section>")
-        return '<script type="application/ld+json">' + to_json(schema) + "</script>\n" + "\n".join(html)
+        html = [Div(H3(q), Div(a, cls="faq-answer"), cls="faq-item") for q, a in self.qa_pairs]
+        return NotStr(_script(schema) + str(Section(*html, cls="faq")))
 
+@dataclass
+class TechnicalTermOptimizer:
+    html: str
+    glossary: Dict[str, str]
 
-class TechnicalTermOptimizer(Component):
-    """Auto‑annotate domain terms and append a glossary block."""
-
-    def __init__(self, html: str, glossary: dict[str, str]):
-        self.html = html
-        self.glossary = glossary
-
-    def render(self) -> str:
+    def __ft__(self):
         soup = BeautifulSoup(self.html, "html.parser")
-        # annotate occurrences
-        for txt in soup.find_all(string=True):
-            if txt.parent.name in {"script", "style"}:
-                continue
+        for txt in soup.find_all(text=True):
+            if txt.parent.name in {"script", "style"}: continue
             for term, desc in self.glossary.items():
                 if term in txt:
                     span = soup.new_tag("span", **{"class": "technical-term", "data-definition": desc})
                     span.string = term
-                    parts = txt.split(term)
-                    new_frag = soup.new_tag("span")
-                    new_frag.append(parts[0])
-                    new_frag.append(span)
-                    new_frag.append(parts[1])
-                    txt.replace_with(new_frag)
-        # build glossary section
-        sec = soup.new_tag("section", id="glossary", **{"class": "technical-glossary"})
-        sec.append(soup.new_tag("h2", string="Technical Glossary"))
-        dl = soup.new_tag("dl")
-        for term, desc in self.glossary.items():
-            dl.append(soup.new_tag("dt", string=term))
-            dl.append(soup.new_tag("dd", string=desc))
-        sec.append(dl)
-        soup.body.append(sec)
-        # schema
+                    txt.replace_with(txt.replace(term, str(span)))
+        gloss = Section(H2("Technical Glossary"), *[Dl(Dt(t), Dd(d)) for t, d in self.glossary.items()], id="glossary", cls="technical-glossary")
+        if soup.body: soup.body.append(BeautifulSoup(str(gloss), "html.parser"))
         schema = {
             "@context": "https://schema.org",
             "@type": "DefinedTermSet",
-            "definedTerm": [
-                {"@type": "DefinedTerm", "name": t, "description": d}
-                for t, d in self.glossary.items()
-            ],
+            "definedTerm": [{"@type": "DefinedTerm", "name": t, "description": d} for t, d in self.glossary.items()],
         }
-        return '<script type="application/ld+json">' + to_json(schema) + "</script>\n" + str(soup)
+        return NotStr(_script(schema) + str(soup))
 
+@dataclass
+class ContentChunker:
+    html: str
+    max_tokens: int = 500
+    overlap: int = 50
 
-class ContentChunker(Component):
-    """Insert chunk divs every *N* tokens to aid LLM retrieval.
-    
-    Chunks content for better LLM retrieval:
-
-    Estimates tokens using character count (rough approximation)
-    Groups content blocks into chunks based on token count
-    Adds overlap between chunks for context preservation
-    Wraps each chunk in a div with a unique ID
-
-    """
-
-    def __init__(self, html: str, *, max_tokens: int = 500, overlap: int = 50):
-        self.html = html
-        self.max_tokens = max_tokens
-        self.overlap = overlap
-
-    def _estimate_tokens(self, text: str) -> int:
-        return max(1, len(text) // 4)  # crude but cheap
-
-    def render(self) -> str:
+    def __ft__(self):
         soup = BeautifulSoup(self.html, "html.parser")
         blocks = soup.find_all(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"])
-        chunks: list[list[str]] = [[]]
-        tok_count = 0
-        for blk in blocks:
-            t = self._estimate_tokens(blk.get_text("", strip=True))
-            if tok_count + t > self.max_tokens and chunks[-1]:
-                # overlap
-                carry = " ".join(chunks[-1][-self.overlap :])
-                chunks.append([carry])
-                tok_count = self._estimate_tokens(carry)
-            chunks[-1].append(str(blk))
-            tok_count += t
-        html_chunks = [
-            f'<div class="content-chunk" data-chunk-id="{i}">' + "".join(c) + "</div>"
-            for i, c in enumerate(chunks)
-        ]
-        return "<div class=\"optimized-content\">" + "".join(html_chunks) + "</div>"
+        def est(t:str)->int: return max(1, len(t)//4)
+        chunks, cur, tok = [[]], [], 0
+        for b in blocks:
+            t = est(b.get_text())
+            if tok+t>self.max_tokens and cur:
+                chunks[-1]=cur; cur = cur[-self.overlap:]; tok=sum(est(BeautifulSoup(c,'html.parser').get_text()) for c in cur); chunks.append([])
+            cur.append(str(b)); tok += t
+        chunks[-1]=cur if cur else chunks[-1]
+        divs = [Div(NotStr("".join(c)), cls="content-chunk", **{"data-chunk-id": str(i)}) for i,c in enumerate(chunks)]
+        return Div(*divs, cls="optimized-content")
 
+@dataclass
+class CitationOptimizer:
+    html: str
+    citations: List[Dict[str, Any]]
 
-class CitationOptimizer(Component):
-    """Embed machine‑readable citations and in‑page reference list."""
-
-    def __init__(self, html: str, citations: list[dict[str, _t.Any]]):
-        self.html = html
-        self.citations = citations
-
-    def render(self) -> str:
+    def __ft__(self):
         soup = BeautifulSoup(self.html, "html.parser")
-        # replace <span class="citation-marker" data-citation-id="X"> with <cite>…</cite>
-        for cite in self.citations:
-            cid = cite["id"]
-            for marker in soup.find_all("span", class_="citation-marker", attrs={"data-citation-id": str(cid)}):
-                cite_tag = soup.new_tag("cite", id=f"cite-{cid}", itemscope="", itemtype="https://schema.org/CreativeWork")
-                cite_tag.string = f"[{cid}]"
-                marker.replace_with(cite_tag)
-        # reference list
-        ref_sec = soup.new_tag("section", id="references", **{"class": "references"})
-        ref_sec.append(soup.new_tag("h2", string="References"))
-        ol = soup.new_tag("ol")
         for c in self.citations:
-            li = soup.new_tag("li", id=f"ref-{c['id']}")
-            txt = ", ".join(c.get("authors", [])) + ". \"" + c.get("title", "") + "\". " + c.get("publisher", "")
-            if "date" in c:
-                txt += " " + c["date"] + ". "
-            if url := c.get("url"):
-                a = soup.new_tag("a", href=url)
-                a.string = url
-                li.append(txt)
-                li.append(a)
-            else:
-                li.string = txt
-            ol.append(li)
-        ref_sec.append(ol)
-        soup.body.append(ref_sec)
-        # JSON‑LD
+            cid = str(c["id"])
+            for m in soup.find_all("span", class_="citation-marker", attrs={"data-citation-id": cid}):
+                m.replace_with(f"<cite id='cite-{cid}'>[{cid}]</cite>")
+        refs = [Li(f"{', '.join(c.get('authors', []))}. \"{c['title']}\". {c.get('publisher','')} {c.get('date','')} ", A(c['url'], href=c['url']) if c.get('url') else "") for c in self.citations]
+        soup.body.append(Section(H2("References"), Ol(*refs), id="references", cls="references"))
         schema = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
             "citation": [
-                {
-                    "@type": "CreativeWork",
-                    "name": c.get("title"),
-                    "author": c.get("authors", []),
-                    "publisher": c.get("publisher"),
-                    "datePublished": c.get("date"),
-                    "url": c.get("url"),
-                }
+                {"@type": "CreativeWork", "name": c.get("title"), "author": c.get("authors", []), "publisher": c.get("publisher"), "datePublished": c.get("date"), "url": c.get("url")}
                 for c in self.citations
             ],
         }
-        return '<script type="application/ld+json">' + to_json(schema) + "</script>\n" + str(soup)
-
+        return NotStr(_script(schema) + str(soup))
 
 # ---------------------------------------------------------------------------
-# Simple information‑density helper (exposed for debugging)
+# diagnostic util
 # ---------------------------------------------------------------------------
 
 def information_density(text: str) -> float:
-    """Return Shannon entropy / token – diagnostic only."""
-    tokens = text.split()
-    total = len(tokens)
-    counts = Counter(tokens)
-    entropy = -sum((c / total) * math.log2(c / total) for c in counts.values())
-    return entropy
+    tokens = text.split(); total=len(tokens); counts=Counter(tokens)
+    return -sum((c/total)*math.log2(c/total) for c in counts.values())
