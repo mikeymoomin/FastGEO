@@ -1,7 +1,6 @@
 import os, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
 sys.path.insert(0, ROOT)
 
 from fasthtml.common import *
@@ -14,7 +13,7 @@ hdrs = [
     Link(rel='stylesheet', href='styles.css'),
 ]
 
-app,rt = fast_app(hdrs=hdrs, live=True)
+app, rt = fast_app(hdrs=hdrs, live=True)
 
 def _html(o):
     "Serialise an FT object (or raw string) to HTML."
@@ -25,43 +24,46 @@ def crawler_demo(title, raw_component, helper_component):
     before = to_xml(raw_component)            # what crawlers saw *before*
     after  = to_xml(helper_component)         # what they see *after*
 
-    return Titled(
+    return Main(
+        Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
         H2("Rendered page"),
         helper_component,                     # browser view
 
-        H2("Crawler HTML – BEFORE helper"),
+        H2("Crawler HTML – BEFORE helper"),
         Pre(Code(NotStr(escape(before)))),     # plain markup
 
-        H2("Crawler HTML – AFTER helper"),
+        H2("Crawler HTML – AFTER helper"),
         Pre(Code(NotStr(escape(after)))),      # enriched markup
         cls="demo",
+        id="landing-page-content"
     )
 
 @rt("/")
 def home():
-    return Titled(
-        "fasthtml_geo playground",
+    home_main_content = Main(id="landing-page-content")(  # HTMX-enabled nav links
+        H1("fasthtml_geo playground"),
         Ul(
-            Li(A(href="/llm")("LLMBlock")),
-            Li(A(href="/article")("SemanticArticle")),
-            Li(A(href="/faq")("FAQOptimizer")),
-            Li(A(href="/glossary")("TechnicalTermOptimizer")),
-            Li(A(href="/chunk")("ContentChunker")),
-            Li(A(href="/cite")("CitationOptimizer")),
+            Li(A(hx_get="/llm", hx_target="#landing-page-content", hx_push_url="true")("LLMBlock")),
+            Li(A(hx_get="/article", hx_target="#landing-page-content", hx_push_url="true")("SemanticArticle")),
+            Li(A(hx_get="/faq", hx_target="#landing-page-content", hx_push_url="true")("FAQOptimizer")),
+            Li(A(hx_get="/glossary", hx_target="#landing-page-content", hx_push_url="true")("TechnicalTermOptimizer")),
+            Li(A(hx_get="/chunk", hx_target="#landing-page-content", hx_push_url="true")("ContentChunker")),
+            Li(A(hx_get="/cite", hx_target="#landing-page-content", hx_push_url="true")("CitationOptimizer")),
         ),
     )
+    return Body(home_main_content)
 
 # 1) LLMBlock ────────────────────────────────────────────────────────────────
 @rt("/llm")
 def llmblock():
-    raw     = P("Hello World!")               # the visible element
+    raw     = P("Hello World!")   
     helper  = LLMBlock(
         raw,
         ctx="Friendly greeting in page header"
     )
-    return crawler_demo("LLMBlock", raw, helper)
-
+    heading = H1("LLMBlock")
+    return crawler_demo(heading, raw, helper)
 
 # 2) SemanticArticle ────────────────────────────────────────────────────────
 @rt("/article")
@@ -71,7 +73,6 @@ def article():
         {"heading": "Why GEO?",     "content": P("LLMs rank semantics, not keywords."), "level": 2},
     ]
 
-    # baseline page without helper
     raw_article = Article(
         H1("GEO in a Nutshell"),
         H2("Introduction"),
@@ -86,7 +87,9 @@ def article():
         sections=sections,
         metadata={"author":"Jane Dev","datePublished":"2025‑04‑17"},
     )
-    return crawler_demo("SemanticArticle", raw_article, helper)
+
+    heading = H1("SemanticArticle")
+    return crawler_demo(heading, raw_article, helper)
 
 # 3) FAQOptimizer ───────────────────────────────────────────────────────────
 @rt("/faq")
@@ -100,7 +103,9 @@ def faq():
         cls="faq",
     )
     helper = FAQOptimizer(qa_pairs=qa)
-    return crawler_demo("FAQOptimizer", raw_faq, helper)
+
+    heading = H1("FAQOptimizer")
+    return crawler_demo(heading , raw_faq, helper)
 
 # 4) TechnicalTermOptimizer ─────────────────────────────────────────────────
 @rt("/glossary")
@@ -112,12 +117,12 @@ def glossary():
     }
     raw     = html                                     # plain string baseline
     helper  = TechnicalTermOptimizer(html=html, glossary=terms)
-    return crawler_demo("TechnicalTermOptimizer", raw, helper)
+    heading = H1("TechnicalTermOptimizer")
+    return crawler_demo(heading, raw, helper)
 
 # 5) ContentChunker ────────────────────────────────────────────────────────
 @rt("/chunk")
 def chunk():
-    # Eight thematic paragraphs (~55 tokens each)
     sections = [
         ("Background" , "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
                          "Phasellus vehicula viverra dolor, vitae facilisis sapien."),
@@ -137,13 +142,10 @@ def chunk():
                          "dolor placerat. Ut gravida."),
     ]
 
-    # Build raw HTML (no helper) – one <p> per section
     raw_html = "".join(f"<p><strong>{h}.</strong> {txt}</p>" for h,txt in sections)
-
-    # Wrap with helper:  max_tokens small to force splitting, overlap for context
     helper = ContentChunker(raw_html, max_tokens=80, overlap=12)
-
-    return crawler_demo("ContentChunker", raw_html, helper)
+    heading = H1("ContentChunker")
+    return crawler_demo(heading, raw_html, helper)
 
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
@@ -162,10 +164,7 @@ def cite():
     }]
     raw    = body
     helper = CitationOptimizer(body, citations=cites)
-    return crawler_demo("CitationOptimizer", raw, helper)
+    heading = H1("CitationOptimizer")
+    return crawler_demo(heading, raw, helper)
 
 serve()
-
-
-
-
