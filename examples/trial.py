@@ -19,16 +19,27 @@ def _html(o):
     "Serialise an FT object (or raw string) to HTML."
     return o if isinstance(o, str) else to_xml(o)
 
-def crawler_demo(title, raw_component, helper_component):
+def crawler_demo(title, raw_component, helper_component, code):
     "Little utility that renders the three viewpoints."
     before = to_xml(raw_component)            # what crawlers saw *before*
     after  = to_xml(helper_component)         # what they see *after*
+    
+    # Extract text from the title if it's a FastHTML element
+    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
     
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
         
-        # Website display with browser mock
+        # VS Code style code display
+        H2("Code Entered"),
+        Div(
+            Pre(
+                Code(NotStr(code)),
+                cls="code-container"
+            )
+        ),
+      
         H2("Rendered page"),
         Div(
             # Browser header
@@ -63,16 +74,28 @@ def crawler_demo(title, raw_component, helper_component):
         id="landing-page-content"
     )
 
-def chunk_demo(title, raw_component, helper_component):
+
+def chunk_demo(title, raw_component, helper_component, code):
     """Utility to render raw page, chunk highlight, and crawler views"""
     before = to_xml(raw_component)
     after  = to_xml(helper_component)
+    
+    # Extract text from the title if it's a FastHTML element
+    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
 
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
 
-        H2("Rendered page"),
+        H2("Code Entered"),
+        Div(
+            Pre(
+                Code(NotStr(code)),
+                cls="code-container"
+            )
+        ),
+
+        H2("Rendered Page"),
         Div(
             # Browser mock header
             Div(
@@ -184,7 +207,10 @@ def llmblock():
         ctx="Friendly greeting in page header"
     )
     heading = H1("LLMBlock")
-    return crawler_demo(heading, raw, helper)
+
+    code = 'LLMBlock((P"Hello World"), "Friendly greeting in page header")'
+
+    return crawler_demo(heading, raw, helper, code)
 
 # 2) SemanticArticle ────────────────────────────────────────────────────────
 @rt("/article")
@@ -209,7 +235,20 @@ def article():
         metadata={"author":"Jane Dev","datePublished":"2025‑04‑17"},
     )
     heading = H1("SemanticArticle")
-    return crawler_demo(heading, raw_article, helper)
+
+    code = """
+    sections = [
+        {"heading": "Introduction", "content": P("Generative engines…"),                "level": 2},
+        {"heading": "Why GEO?",     "content": P("LLMs rank semantics, not keywords."), "level": 2},
+    ]
+
+    SemanticArticle(
+            title = "GEO in a Nutshell",
+            sections = sections,
+            metadata={"author":"Jane Dev","datePublished":"2025‑04‑17"},
+    )"""
+
+    return crawler_demo(heading, raw_article, helper, code)
 
 # 3) FAQOptimizer ───────────────────────────────────────────────────────────
 @rt("/faq")
@@ -225,7 +264,16 @@ def faq():
     helper = FAQOptimizer(qa_pairs=qa)
 
     heading = H1("FAQOptimizer")
-    return crawler_demo(heading , raw_faq, helper)
+
+    code = """
+        qa = [
+            ("What is GEO?",         "Optimising pages so LLM‑driven search surfaces them."),
+            ("Does GEO replace SEO?","No – they complement each other."),
+
+        FAQOptimizer(qa_pairs=qa)
+    """
+
+    return crawler_demo(heading , raw_faq, helper, code)
 
 # 4) TechnicalTermOptimizer ─────────────────────────────────────────────────
 @rt("/glossary")
@@ -238,7 +286,17 @@ def glossary():
     raw     = html                                     # plain string baseline
     helper  = TechnicalTermOptimizer(html=html, glossary=terms)
     heading = H1("TechnicalTermOptimizer")
-    return crawler_demo(heading, raw, helper)
+
+    code = """
+    html  = "<p>Transformers rely on self‑attention for sequence modelling.</p>"
+    terms = {
+        "transformer":   "Neural network architecture based on attention.",
+        "self‑attention":"Mechanism where each token attends to all others.",
+    }
+    TechnicalTermOptimizer(html=html, glossary=terms)
+"""
+
+    return crawler_demo(heading, raw, helper, code)
 
 # 5) ContentChunker ────────────────────────────────────────────────────────
 @rt("/chunk")
@@ -259,8 +317,20 @@ def get():
     # Page heading
     heading = H1("ContentChunker Demo")
 
+    code = """
+    body = "
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>Vivamus vitae ligula in elit porttitor egestas.</p>
+    <p>Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.</p>
+    <p>Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.</p>
+    <p>Curabitur a orci vitae lectus volutpat tincidunt.</p>
+    "
+
+    ContentChunker(html=body, max_tokens=50, overlap=1)
+"""
+
     # Render a side-by-side view: raw HTML vs. chunked helper output
-    return chunk_demo(heading, body, helper)
+    return chunk_demo(heading, body, helper, code)
 
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
@@ -280,6 +350,25 @@ def cite():
     raw    = body
     helper = CitationOptimizer(body, citations=cites)
     heading = H1("CitationOptimizer")
-    return crawler_demo(heading, raw, helper)
+
+    code = """
+    body = (
+        "<p>Deep learning has revolutionised NLP"
+        '<span class="citation-marker" data-citation-id="1"></span>.</p>'
+    )
+
+    cites = [{
+        "id":1,
+        "title":"Attention Is All You Need",
+        "authors":["Vaswani, A.", "et al."],
+        "publisher":"NeurIPS",
+        "date":"2017",
+        "url":"https://arxiv.org/abs/1706.03762",
+    }]
+
+    CitationOptimizer(body, citations=cites)
+"""
+
+    return crawler_demo(heading, raw, helper, code)
 
 serve()
