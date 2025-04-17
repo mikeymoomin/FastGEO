@@ -113,8 +113,6 @@ class SemanticArticle:
         return NotStr(_script(schema) + html_body)
 
 
-        return NotStr(_script(schema) + str(container))
-
 @dataclass
 class FAQOptimizer:
     qa_pairs: List[Tuple[str, str]]
@@ -129,7 +127,8 @@ class FAQOptimizer:
             ],
         }
         html = [Div(H3(q), Div(a, cls="faq-answer"), cls="faq-item") for q, a in self.qa_pairs]
-        return NotStr(_script(schema) + str(Section(*html, cls="faq")))
+        faq_section = Section(*html, cls="faq")
+        return NotStr(_script(schema) + to_xml(faq_section))
 
 @dataclass
 class TechnicalTermOptimizer:
@@ -138,15 +137,22 @@ class TechnicalTermOptimizer:
 
     def __ft__(self):
         soup = BeautifulSoup(self.html, "html.parser")
-        for txt in soup.find_all(text=True):
+        for txt in soup.find_all(string=True):
             if txt.parent.name in {"script", "style"}: continue
             for term, desc in self.glossary.items():
                 if term in txt:
-                    span = soup.new_tag("span", **{"class": "technical-term", "data-definition": desc})
-                    span.string = term
-                    txt.replace_with(txt.replace(term, str(span)))
+                    span = Span(term,
+                    cls="technical-term",
+                    **{"data-definition": desc})
+                    span_tag = BeautifulSoup(to_xml(span), "html.parser").span
+                    before, _, after = txt.partition(term)
+                    if before: txt.insert_before(before)
+                    txt.insert_before(span_tag)
+                    if after:  txt.replace_with(after)
+                    else:      txt.extract() 
         gloss = Section(H2("Technical Glossary"), *[Dl(Dt(t), Dd(d)) for t, d in self.glossary.items()], id="glossary", cls="technical-glossary")
-        if soup.body: soup.body.append(BeautifulSoup(str(gloss), "html.parser"))
+        if soup.body:
+            soup.body.append(BeautifulSoup(to_xml(gloss), "html.parser"))
         schema = {
             "@context": "https://schema.org",
             "@type": "DefinedTermSet",
@@ -183,10 +189,21 @@ class CitationOptimizer:
         soup = BeautifulSoup(self.html, "html.parser")
         for c in self.citations:
             cid = str(c["id"])
-            for m in soup.find_all("span", class_="citation-marker", attrs={"data-citation-id": cid}):
-                m.replace_with(f"<cite id='cite-{cid}'>[{cid}]</cite>")
+            for m in soup.find_all("span",
+                                   class_="citation-marker",
+                                   attrs={"data-citation-id": cid}):
+                cite_html = f"<cite id='cite-{cid}'>[{cid}]</cite>"
+                cite_tag  = BeautifulSoup(cite_html, "html.parser").cite
+                m.replace_with(cite_tag)
         refs = [Li(f"{', '.join(c.get('authors', []))}. \"{c['title']}\". {c.get('publisher','')} {c.get('date','')} ", A(c['url'], href=c['url']) if c.get('url') else "") for c in self.citations]
-        soup.body.append(Section(H2("References"), Ol(*refs), id="references", cls="references"))
+        refs_html = to_xml(
+            Section(H2("References"),
+                Ol(*refs),
+                    id="references", cls="references"))
+
+                # BeautifulSoup may not have <body> if the fragment is just a div/p
+        target = soup.body if soup.body else soup
+        target.append(BeautifulSoup(refs_html, "html.parser"))
         schema = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
