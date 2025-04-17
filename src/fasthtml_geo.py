@@ -24,7 +24,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 def to_json(obj: _t.Any) -> str:
-    """Compact helper: `{{obj | to_json}}` in f‑string context."""
+    """This function convernts Python str's to JSON Strings"""
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
 
 # ---------------------------------------------------------------------------
@@ -34,6 +34,8 @@ def to_json(obj: _t.Any) -> str:
 
 class LLMBlock(Component):
     """Wrap *any* FT element and attach additional LLM context via JSON‑LD.
+
+    This function takes any HTML and allows the user to add machine readable context to it via JSON-LD
 
     Parameters
     ----------
@@ -86,7 +88,14 @@ class LLMBlock(Component):
 
 
 class SemanticArticle(Component):
-    """Full article wrapper with headline, sections & metadata."""
+    """Full article wrapper with headline, sections & metadata.
+    
+    Creates JSON-LD schema for Article type
+    Builds HTML structure with semantic elements
+    Adds metadata as meta tags
+    Returns the complete article markup
+
+    """
 
     def __init__(
         self,
@@ -129,7 +138,15 @@ class SemanticArticle(Component):
 
 
 class FAQOptimizer(Component):
-    """Question‑answer blocks with FAQPage schema."""
+    """Question‑answer blocks with FAQPage schema.
+    
+    Takes a list of Q&A pairs and:
+
+    Creates FAQPage schema
+    Renders each Q&A as a div structure
+    Assigns IDs for easier reference
+    
+    """
 
     def __init__(self, qa: list[tuple[str, str]]) -> None:
         self.qa = qa
@@ -206,7 +223,16 @@ class TechnicalTermOptimizer(Component):
 
 
 class ContentChunker(Component):
-    """Insert chunk divs every *N* tokens to aid LLM retrieval."""
+    """Insert chunk divs every *N* tokens to aid LLM retrieval.
+    
+    Chunks content for better LLM retrieval:
+
+    Estimates tokens using character count (rough approximation)
+    Groups content blocks into chunks based on token count
+    Adds overlap between chunks for context preservation
+    Wraps each chunk in a div with a unique ID
+
+    """
 
     def __init__(self, html: str, *, max_tokens: int = 500, overlap: int = 50):
         self.html = html
