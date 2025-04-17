@@ -51,6 +51,10 @@ p {
     color: var(--text-color); 
 }
 
+code {
+    color: white;
+}
+
 a {
     color: var(--primary-color);
     text-decoration: none;
@@ -406,4 +410,19 @@ article {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 0.8rem;
     border-bottom: 1px solid #474747;
+}
+
+pre,
+code {
+    background: #1e1e1e !important;
+    color: #ffffff !important;
+    padding: 1rem !important;
+    border-radius: 0.5rem !important;
+}
+
+/* Target Code Entered sections specifically */
+.code-entered pre,
+.code-entered pre code {
+    background: #1e1e1e !important;
+    color: #ffffff !important;
 }

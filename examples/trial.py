@@ -288,7 +288,7 @@ def glossary():
     heading = H1("TechnicalTermOptimizer")
 
     code = """
-    html  = "<p>Transformers rely on self‑attention for sequence modelling.</p>"
+    html  = "P(Transformers rely on self‑attention for sequence modelling.)"
     terms = {
         "transformer":   "Neural network architecture based on attention.",
         "self‑attention":"Mechanism where each token attends to all others.",
