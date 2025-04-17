@@ -23,34 +23,155 @@ def crawler_demo(title, raw_component, helper_component):
     "Little utility that renders the three viewpoints."
     before = to_xml(raw_component)            # what crawlers saw *before*
     after  = to_xml(helper_component)         # what they see *after*
+    
+    return Main(
+        Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
+        title,
+        
+        # Website display with browser mock
+        H2("Rendered page"),
+        Div(
+            # Browser header
+            Div(
+                Div(
+                    Div(cls="browser-dot red"),
+                    Div(cls="browser-dot yellow"),
+                    Div(cls="browser-dot green"),
+                    cls="browser-dots"
+                ),
+                Div(
+                    Input(type="text", value="https://example.com/page", readonly=True),
+                    cls="browser-address"
+                ),
+                cls="browser-header"
+            ),
+            # Browser content
+            Div(
+                helper_component,
+                cls="browser-content"
+            ),
+            cls="website-display"
+        ),
+        
+        H2("Crawler HTML – BEFORE helper"),
+        Pre(Code(NotStr(escape(before)))),        # plain markup
+        
+        H2("Crawler HTML – AFTER helper"),
+        Pre(Code(NotStr(escape(after)))),         # enriched markup
+        
+        cls="demo",
+        id="landing-page-content"
+    )
+
+def chunk_demo(title, raw_component, helper_component):
+    """Utility to render raw page, chunk highlight, and crawler views"""
+    before = to_xml(raw_component)
+    after  = to_xml(helper_component)
 
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
+
         H2("Rendered page"),
-        helper_component,                     # browser view
+        Div(
+            # Browser mock header
+            Div(
+                Div(
+                    Div(cls="browser-dot red"),
+                    Div(cls="browser-dot yellow"),
+                    Div(cls="browser-dot green"),
+                    cls="browser-dots"
+                ),
+                Div(
+                    Input(type="text", value="https://example.com/page", readonly=True),
+                    cls="browser-address"
+                ),
+                cls="browser-header"
+            ),
+            # Show the unmodified content as it would normally render
+            Div(
+                NotStr(raw_component),
+                cls="browser-content"
+            ),
+            cls="website-display"
+        ),
+
+        H2("Chunkation of Paragraphs"),
+        Div(
+            # Show the chunked content with highlighting
+            helper_component,
+            cls="browser-content"
+        ),
 
         H2("Crawler HTML – BEFORE helper"),
-        Pre(Code(NotStr(escape(before)))),     # plain markup
+        Pre(Code(NotStr(escape(before)))),
 
         H2("Crawler HTML – AFTER helper"),
-        Pre(Code(NotStr(escape(after)))),      # enriched markup
+        Pre(Code(NotStr(escape(after)))),
+
         cls="demo",
         id="landing-page-content"
     )
 
 @rt("/")
 def home():
-    home_main_content = Main(id="landing-page-content")(  # HTMX-enabled nav links
-        H1("fasthtml_geo playground"),
-        Ul(
-            Li(A(hx_get="/llm", hx_target="#landing-page-content", hx_push_url="true")("LLMBlock")),
-            Li(A(hx_get="/article", hx_target="#landing-page-content", hx_push_url="true")("SemanticArticle")),
-            Li(A(hx_get="/faq", hx_target="#landing-page-content", hx_push_url="true")("FAQOptimizer")),
-            Li(A(hx_get="/glossary", hx_target="#landing-page-content", hx_push_url="true")("TechnicalTermOptimizer")),
-            Li(A(hx_get="/chunk", hx_target="#landing-page-content", hx_push_url="true")("ContentChunker")),
-            Li(A(hx_get="/cite", hx_target="#landing-page-content", hx_push_url="true")("CitationOptimizer")),
+    home_main_content = Main(id="landing-page-content")(    # HTMX-enabled nav links
+        # Hero Section
+        Div(
+            H1("fasthtml_geo"),
+            P("Generative Engine Optimization for FastHTML Applications"),
+            cls="hero"
         ),
+        
+        # Main Navigation
+        Div(
+            H2("Explore GEO Components"),
+            Ul(
+                Li(
+                    A(hx_get="/llm", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("LLMBlock"),
+                        P("Attach context and metadata to any FastHTML element for better LLM understanding")
+                    )
+                ),
+                Li(
+                    A(hx_get="/article", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("SemanticArticle"),
+                        P("Structured articles with proper schema markup for enhanced discoverability")
+                    )
+                ),
+                Li(
+                    A(hx_get="/faq", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("FAQOptimizer"),
+                        P("Convert FAQs to schema.org format for better search engine visibility")
+                    )
+                ),
+                Li(
+                    A(hx_get="/glossary", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("TechnicalTermOptimizer"),
+                        P("Highlight and define technical terms with semantic markup and glossaries")
+                    )
+                ),
+                Li(
+                    A(hx_get="/chunk", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("ContentChunker"),
+                        P("Split content into optimized chunks for better LLM processing")
+                    )
+                ),
+                Li(
+                    A(hx_get="/cite", hx_target="#landing-page-content", hx_push_url="true")(
+                        H3("CitationOptimizer"),
+                        P("Transform citations into semantic markup for academic and reference content")
+                    )
+                ),
+            ),
+            cls="main-nav"
+        ),
+        
+        # Footer
+        Div(
+            P("Built with fasthtml_geo – Optimize your FastHTML applications for generative engines"),
+            cls="footer"
+        )
     )
     return Body(home_main_content)
 
@@ -85,9 +206,8 @@ def article():
     helper = SemanticArticle(
         title="GEO in a Nutshell",
         sections=sections,
-        metadata={"author":"Jane Dev","datePublished":"2025‑04‑17"},
+        metadata={"author":"Jane Dev","datePublished":"2025‑04‑17"},
     )
-
     heading = H1("SemanticArticle")
     return crawler_demo(heading, raw_article, helper)
 
@@ -122,30 +242,25 @@ def glossary():
 
 # 5) ContentChunker ────────────────────────────────────────────────────────
 @rt("/chunk")
-def chunk():
-    sections = [
-        ("Background" , "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
-                         "Phasellus vehicula viverra dolor, vitae facilisis sapien."),
-        ("Problem"    , "Fusce in massa non justo interdum scelerisque. Integer at sem "
-                         "quis ex malesuada laoreet."),
-        ("Data"       , "Curabitur imperdiet fermentum sem, in sollicitudin purus rhoncus "
-                         "sit amet. Pellentesque placerat."),
-        ("Approach"   , "Morbi sed urna eget odio vulputate dictum. Donec tincidunt "
-                         "augue et leo faucibus."),
-        ("Training"   , "Aenean dignissim orci vitae nibh congue, ac tristique dolor "
-                         "pharetra. Maecenas accumsan."),
-        ("Evaluation" , "Praesent a massa id metus auctor rhoncus eget vel leo. Vivamus "
-                         "venenatis sapien vel."),
-        ("Results"    , "Duis quis tellus a nulla aliquet pharetra. Nullam faucibus, "
-                         "urna vitae cursus dictum."),
-        ("Conclusion" , "Sed tristique sapien sit amet mauris viverra, vel condimentum "
-                         "dolor placerat. Ut gravida."),
-    ]
+def get():
+    # A big blob of HTML we'll chunk
+    body = """
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>Vivamus vitae ligula in elit porttitor egestas.</p>
+    <p>Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.</p>
+    <p>Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.</p>
+    <p>Curabitur a orci vitae lectus volutpat tincidunt.</p>
+    """
 
-    raw_html = "".join(f"<p><strong>{h}.</strong> {txt}</p>" for h,txt in sections)
-    helper = ContentChunker(raw_html, max_tokens=80, overlap=12)
-    heading = H1("ContentChunker")
-    return crawler_demo(heading, raw_html, helper)
+    # Apply the ContentChunker helper
+    # max_tokens controls approximate chunk size; overlap ensures smooth transitions
+    helper = ContentChunker(html=body, max_tokens=50, overlap=1)
+
+    # Page heading
+    heading = H1("ContentChunker Demo")
+
+    # Render a side-by-side view: raw HTML vs. chunked helper output
+    return chunk_demo(heading, body, helper)
 
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
