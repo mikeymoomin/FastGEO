@@ -182,36 +182,71 @@ class ContentChunker:
 
 @dataclass
 class CitationOptimizer:
-    html: str
-    citations: List[Dict[str, Any]]
+    element: Any  # FT component or raw HTML
+    citations: List[Dict[str, Any]]  # List of citation metadata dicts
 
     def __ft__(self):
-        soup = BeautifulSoup(self.html, "html.parser")
+        # Serialize the FT component (or raw HTML) to a string
+        html_body = to_xml(self.element)
+        soup = BeautifulSoup(html_body, "html.parser")
+        # Determine insertion target (body if present)
+        target = soup.body if soup.body else soup
+
+        # Auto-insert span markers if the user did not provide any
         for c in self.citations:
             cid = str(c["id"])
-            for m in soup.find_all("span",
-                                   class_="citation-marker",
-                                   attrs={"data-citation-id": cid}):
-                cite_html = f"<cite id='cite-{cid}'>[{cid}]</cite>"
-                cite_tag  = BeautifulSoup(cite_html, "html.parser").cite
-                m.replace_with(cite_tag)
-        refs = [Li(f"{', '.join(c.get('authors', []))}. \"{c['title']}\". {c.get('publisher','')} {c.get('date','')} ", A(c['url'], href=c['url']) if c.get('url') else "") for c in self.citations]
-        refs_html = to_xml(
-            Section(H2("References"),
-                Ol(*refs),
-                    id="references", cls="references"))
+            if not soup.find(
+                "span", class_="citation-marker", attrs={"data-citation-id": cid}
+            ):
+                marker_html = f'<span class="citation-marker" data-citation-id="{cid}"></span>'
+                marker_tag = BeautifulSoup(marker_html, "html.parser").span
+                target.append(marker_tag)
 
-                # BeautifulSoup may not have <body> if the fragment is just a div/p
-        target = soup.body if soup.body else soup
-        target.append(BeautifulSoup(refs_html, "html.parser"))
+        # Replace all markers with proper <cite> elements
+        for c in self.citations:
+            cid = str(c["id"])
+            for m in soup.find_all(
+                "span", class_="citation-marker", attrs={"data-citation-id": cid}
+            ):
+                cite_html = f"<cite id='cite-{cid}'>[{cid}]</cite>"
+                cite_tag = BeautifulSoup(cite_html, "html.parser").cite
+                m.replace_with(cite_tag)
+
+        # Build the references list
+        refs = [
+            Li(
+                f"{', '.join(c.get('authors', []))}. \"{c['title']}\". {c.get('publisher','')} {c.get('date','')}",
+                A(c['url'], href=c['url']) if c.get('url') else None
+            )
+            for c in self.citations
+        ]
+        refs_section = to_xml(
+            Section(
+                H2("References"),
+                Ol(*refs),
+                id="references", cls="references"
+            )
+        )
+        target.append(BeautifulSoup(refs_section, "html.parser"))
+
+        # Generate JSON-LD
         schema = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
             "citation": [
-                {"@type": "CreativeWork", "name": c.get("title"), "author": c.get("authors", []), "publisher": c.get("publisher"), "datePublished": c.get("date"), "url": c.get("url")}
+                {
+                    "@type": "CreativeWork",
+                    "name": c.get("title"),
+                    "author": c.get("authors", []),
+                    "publisher": c.get("publisher"),
+                    "datePublished": c.get("date"),
+                    "url": c.get("url")
+                }
                 for c in self.citations
             ],
         }
+
+        # Return the enriched HTML plus embedded schema
         return NotStr(_script(schema) + str(soup))
 
 # ---------------------------------------------------------------------------

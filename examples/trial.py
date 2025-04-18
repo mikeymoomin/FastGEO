@@ -278,7 +278,7 @@ def faq():
 # 4) TechnicalTermOptimizer ─────────────────────────────────────────────────
 @rt("/glossary")
 def glossary():
-    html  = "<p>Transformers rely on self‑attention for sequence modelling.</p>"
+    html  = P("Transformers rely on self‑attention for sequence modelling.")
     terms = {
         "transformer":   "Neural network architecture based on attention.",
         "self‑attention":"Mechanism where each token attends to all others.",
@@ -319,11 +319,11 @@ def get():
 
     code = """
     body = "
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-    <p>Vivamus vitae ligula in elit porttitor egestas.</p>
-    <p>Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.</p>
-    <p>Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.</p>
-    <p>Curabitur a orci vitae lectus volutpat tincidunt.</p>
+    P(Lorem ipsum dolor sit amet, consectetur adipiscing elit.),
+    P(Vivamus vitae ligula in elit porttitor egestas.),
+    P(Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.),
+    P(Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.),
+    P(Curabitur a orci vitae lectus volutpat tincidunt.)
     "
 
     ContentChunker(html=body, max_tokens=50, overlap=1)
@@ -335,40 +335,42 @@ def get():
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
 def cite():
-    body = (
-        "<p>Deep learning has revolutionised NLP"
-        '<span class="citation-marker" data-citation-id="1"></span>.</p>'
-    )
+    # 1) Your raw citation metadata
     cites = [{
-        "id":1,
-        "title":"Attention Is All You Need",
-        "authors":["Vaswani, A.", "et al."],
-        "publisher":"NeurIPS",
-        "date":"2017",
-        "url":"https://arxiv.org/abs/1706.03762",
+        "id": 1,
+        "title": "Attention Is All You Need",
+        "authors": ["Vaswani, A.", "et al."],
+        "publisher": "NeurIPS",
+        "date": "2017",
+        "url": "https://arxiv.org/abs/1706.03762",
     }]
-    raw    = body
-    helper = CitationOptimizer(body, citations=cites)
-    heading = H1("CitationOptimizer")
 
+    # 2) Wrap into a small helper that picks out the right citation object
+    def CitationOptimiser(element, citation_id):
+        # Find the single citation dict matching the given id
+        matched = [c for c in cites if c["id"] == citation_id]
+        # Pass that list into the real CitationOptimizer class
+        return CitationOptimizer(element, citations=matched)
+
+    # 3) Build your FT component and invoke the wrapper
+    body    = P("Deep learning has revolutionised NLP")
+    helper  = CitationOptimiser(body, 1)  # <-- only two args here
+
+    # 4) Show the exact same syntax in the demo panel
     code = """
-    body = (
-        "<p>Deep learning has revolutionised NLP"
-        '<span class="citation-marker" data-citation-id="1"></span>.</p>'
-    )
+cites = [{
+    "id": 1,
+    "title": "Attention Is All You Need",
+    "authors": ["Vaswani, A.", "et al."],
+    "publisher": "NeurIPS",
+    "date": "2017",
+    "url": "https://arxiv.org/abs/1706.03762",
+}]
 
-    cites = [{
-        "id":1,
-        "title":"Attention Is All You Need",
-        "authors":["Vaswani, A.", "et al."],
-        "publisher":"NeurIPS",
-        "date":"2017",
-        "url":"https://arxiv.org/abs/1706.03762",
-    }]
-
-    CitationOptimizer(body, citations=cites)
+CitationOptimiser(P("Deep learning has revolutionised NLP"), 1)
 """
 
-    return crawler_demo(heading, raw, helper, code)
+    heading = H1("CitationOptimiser")
+    return crawler_demo(heading, body, helper, code)
 
 serve()
