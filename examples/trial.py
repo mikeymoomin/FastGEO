@@ -77,25 +77,26 @@ def crawler_demo(title, raw_component, helper_component, code):
 
 def chunk_demo(title, raw_component, helper_component, code):
     """Utility to render raw page, chunk highlight, and crawler views"""
-    before = to_xml(raw_component)
-    after  = to_xml(helper_component)
-    
+    # Ensure raw_component is serialized if it's not already a string
+    before_html = raw_component if isinstance(raw_component, str) else to_xml(raw_component)
+    after_html  = to_xml(helper_component) # helper_component.__ft__() returns FT object
+
     # Extract text from the title if it's a FastHTML element
-    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
+    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') and title.children else str(title)
 
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
-        title,
+        H1(title_text), # Use H1 for consistency
 
         H2("Code Entered"),
         Div(
             Pre(
-                Code(NotStr(code)),
+                Code(NotStr(code)), # Use NotStr here for pre-formatted code
                 cls="code-container"
             )
         ),
 
-        H2("Rendered Page"),
+        H2("Rendered Page (Original)"),
         Div(
             # Browser mock header
             Div(
@@ -113,24 +114,25 @@ def chunk_demo(title, raw_component, helper_component, code):
             ),
             # Show the unmodified content as it would normally render
             Div(
-                NotStr(raw_component),
+                # Render the original component directly (FastHTML handles tuples/lists)
+                raw_component,
                 cls="browser-content"
             ),
             cls="website-display"
         ),
 
-        H2("Chunkation of Paragraphs"),
+        H2("Chunk Visualization"),
         Div(
-            # Show the chunked content with highlighting
-            helper_component,
-            cls="browser-content"
+            # Show the chunked content with highlighting/borders (add CSS for .chunked-view .content-chunk)
+            helper_component, # Renders the output of ContentChunker.__ft__()
+            cls="browser-content" # Re-use class for consistent padding/style
         ),
 
         H2("Crawler HTML – BEFORE helper"),
-        Pre(Code(NotStr(escape(before)))),
+        Pre(Code(escape(before_html))), # Escape the raw HTML string
 
         H2("Crawler HTML – AFTER helper"),
-        Pre(Code(NotStr(escape(after)))),
+        Pre(Code(escape(after_html))),  # Escape the processed HTML string
 
         cls="demo",
         id="landing-page-content"
@@ -299,38 +301,119 @@ def glossary():
     return crawler_demo(heading, raw, helper, code)
 
 # 5) ContentChunker ────────────────────────────────────────────────────────
-@rt("/chunk")
-def get():
-    # A big blob of HTML we'll chunk
-    body = """
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
-    <p>Vivamus vitae ligula in elit porttitor egestas.</p>
-    <p>Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.</p>
-    <p>Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.</p>
-    <p>Curabitur a orci vitae lectus volutpat tincidunt.</p>
-    """
+def chunk_demo(title, raw_component, helper_component, code):
+    """Utility to render raw page, chunk highlight, and crawler views"""
+    # Ensure raw_component is serialized if it's not already a string
+    before_html = raw_component if isinstance(raw_component, str) else to_xml(raw_component)
+    after_html  = to_xml(helper_component) # helper_component.__ft__() returns FT object
 
-    # Apply the ContentChunker helper
+    # Extract text from the title if it's a FastHTML element
+    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') and title.children else str(title)
+
+    return Main(
+        Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
+        H1(title_text), # Use H1 for consistency
+
+        H2("Code Entered"),
+        Div(
+            Pre(
+                Code(NotStr(code)), # Use NotStr here for pre-formatted code
+                cls="code-container"
+            )
+        ),
+
+        H2("Rendered Page (Original)"),
+        Div(
+            # Browser mock header
+            Div(
+                Div(
+                    Div(cls="browser-dot red"),
+                    Div(cls="browser-dot yellow"),
+                    Div(cls="browser-dot green"),
+                    cls="browser-dots"
+                ),
+                Div(
+                    Input(type="text", value="https://example.com/page", readonly=True),
+                    cls="browser-address"
+                ),
+                cls="browser-header"
+            ),
+            # Show the unmodified content as it would normally render
+            Div(
+                # Render the original component directly (FastHTML handles tuples/lists)
+                raw_component,
+                cls="browser-content"
+            ),
+            cls="website-display"
+        ),
+
+        H2("Chunk Visualization"),
+        Div(
+            # Show the chunked content with highlighting/borders (add CSS for .chunked-view .content-chunk)
+            helper_component, # Renders the output of ContentChunker.__ft__()
+            cls="browser-content" # Re-use class for consistent padding/style
+        ),
+
+        H2("Crawler HTML – BEFORE helper"),
+        Pre(Code(escape(before_html))), # Escape the raw HTML string
+
+        H2("Crawler HTML – AFTER helper"),
+        Pre(Code(escape(after_html))),  # Escape the processed HTML string
+
+        cls="demo",
+        id="landing-page-content"
+    )
+
+# ... (home, llmblock, article, faq, glossary routes) ...
+
+# --- Updated /chunk route ---
+@rt("/chunk")
+def chunk_route(): # Renamed function slightly to avoid conflict with built-in 'get'
+    # A big blob of HTML content defined using FastHTML components
+    body_components = Group( # Wrap in Group or similar if multiple top-level elements
+        P("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce Mollis."),
+        P("Vivamus vitae ligula in elit porttitor egestas. Nam ut eleifend dui."),
+        P("Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci, vel eleifend."),
+        P("Nulla facilisi. Donec euismod, nisl eget consectetur sagittis, velit massa."),
+        H3("A Subheading"),
+        P("Curabitur a orci vitae lectus volutpat tincidunt. Aliquam erat volutpat."),
+        Ul(Li("First item."), Li("Second long item that might push token limits."), Li("Third item.")),
+        P("Final paragraph after the list.")
+    )
+
+    # *** Convert the FastHTML components to an HTML string ***
+    raw_html_string = to_xml(body_components)
+
+    # Apply the ContentChunker helper to the HTML string
     # max_tokens controls approximate chunk size; overlap ensures smooth transitions
-    helper = ContentChunker(html=body, max_tokens=50, overlap=1)
+    helper = ContentChunker(raw_html_string, max_tokens=30, overlap=1) # Reduced max_tokens for demo
 
     # Page heading
-    heading = H1("ContentChunker Demo")
+    heading = "ContentChunker" # Just the text for the H1
 
-    code = """
-    body = "
-    P(Lorem ipsum dolor sit amet, consectetur adipiscing elit.),
-    P(Vivamus vitae ligula in elit porttitor egestas.),
-    P(Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci.),
-    P(Nulla facilisi. Donec euismod, nisl eget consectetur sagittis.),
-    P(Curabitur a orci vitae lectus volutpat tincidunt.)
-    "
+    code = f"""
+# Original FastHTML components (example)
+body_components = Group(
+    P("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce Mollis."),
+    P("Vivamus vitae ligula in elit porttitor egestas. Nam ut eleifend dui."),
+    P("Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci, vel eleifend."),
+    P("Nulla facilisi. Donec euismod, nisl eget consectetur sagittis, velit massa."),
+    H3("A Subheading"),
+    P("Curabitur a orci vitae lectus volutpat tincidunt. Aliquam erat volutpat."),
+    Ul(Li("First item."), Li("Second long item that might push token limits."), Li("Third item.")),
+    P("Final paragraph after the list.")
+)
 
-    ContentChunker(html=body, max_tokens=50, overlap=1)
+# Convert to HTML string
+raw_html_string = to_xml(body_components)
+
+# Apply chunker
+helper = ContentChunker(raw_html_string, max_tokens=30, overlap=1)
 """
 
-    # Render a side-by-side view: raw HTML vs. chunked helper output
-    return chunk_demo(heading, body, helper, code)
+    # Render using the updated chunk_demo
+    # Pass the *original components* for rendering, and the helper instance
+    return chunk_demo(heading, body_components, helper, code)
 
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")

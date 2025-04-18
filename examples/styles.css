@@ -12,12 +12,14 @@
     --primary-lighter: #eff6ff;
     --text-color: #000000;  /* Changed to pure black */
     --text-light: #1f2937;  /* Changed to regular text color */
-    --text-lighter: #6b7280; 
+    --text-lighter: #6b7280;
     --background: #f9fafb;
     --background-dark: #f3f4f6;
     --white: #ffffff;
     --border-color: #e5e7eb;
-    --code-background: #f8fafc;
+    --code-background: #f8fafc; /* Keep for general code, maybe? */
+    --vscode-background: #1e1e1e; /* Specific for VSCode style */
+    --vscode-text: #d4d4d4;      /* Specific for VSCode style */
     --gradient-start: #dbeafe;
     --gradient-end: #eff6ff;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -48,11 +50,14 @@ h4 { font-size: 1.25rem; }
 
 p {
     margin-bottom: 1rem;
-    color: var(--text-color); 
+    color: var(--text-color);
 }
 
+/* Code tag default - might be overridden by pre > code */
 code {
-    color: white;
+    /* Let container (like pre) handle background/color */
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.9em; /* Slightly smaller than body text */
 }
 
 a {
@@ -199,6 +204,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    cursor: pointer; /* Indicate it's clickable */
 }
 
 .back-button:hover {
@@ -208,16 +214,17 @@ a:hover {
     text-decoration: none;
 }
 
-/* Demo sections with website card display */
+/* Demo sections container */
 .demo {
     max-width: 1400px;
-    margin: 2rem auto;
+    margin: 6rem auto 2rem auto; /* Added top margin to clear fixed back button */
     padding: 2rem;
     background: var(--white);
     border-radius: 1rem;
     box-shadow: var(--shadow);
 }
 
+/* Demo section Titles */
 .demo > h1 {
     text-align: center;
     margin-bottom: 3rem;
@@ -230,6 +237,7 @@ a:hover {
     padding-top: 3rem;
     border-top: 1px solid var(--border-color);
     margin-top: 3rem;
+    margin-bottom: 1.5rem; /* Added margin below H2 */
     color: var(--text-color);
 }
 
@@ -293,9 +301,10 @@ a:hover {
 .browser-content {
     padding: 2rem;
     background: var(--white);
-    overflow-x: auto;
+    overflow-x: auto; /* Allow horizontal scroll if content overflows */
 }
 
+/* Default Preformatted text style (e.g., Crawler HTML view) */
 .demo pre {
     background: var(--code-background);
     border: 1px solid var(--border-color);
@@ -306,26 +315,128 @@ a:hover {
     font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
     font-size: 0.875rem;
     line-height: 1.5;
-    white-space: pre-wrap;
+    white-space: pre-wrap; /* Allow wrapping */
     word-wrap: break-word;
 }
 
-.demo code {
-    font-family: inherit;
-    color: var(--text-color);
+.demo pre code {
+    /* Code inside default 'pre' gets default text color */
+    color: var(--text-light);
+    background: none; /* Inherit background from pre */
+    padding: 0 !important; /* Remove padding if pre handles it */
+    border-radius: 0 !important;
 }
 
-/* Component-specific styling remains largely the same */
+/* VS Code style for specific code blocks (.code-container) */
+.demo .code-container {
+    background: var(--vscode-background);
+    color: var(--vscode-text);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin: 1rem 0;
+    border: 1px solid #474747; /* Darker border */
+}
+
+.demo .code-container pre {
+    background: var(--vscode-background) !important; /* Override default pre */
+    color: var(--vscode-text) !important;
+    padding: 0 !important; /* Container handles padding */
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    white-space: pre; /* No wrap for code editing view */
+    overflow-x: auto;
+}
+
+.demo .code-container code {
+    background: none !important; /* Ensure no background */
+    color: var(--vscode-text) !important; /* Ensure text color */
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-family: inherit; /* Inherit monospace from container */
+    font-size: inherit;
+}
+
+/* Component-specific styling */
 
 /* Article styling */
 article {
-    padding: 1.5rem;
-    background: var(--primary-lighter);
-    border-radius: 0.5rem;
+    /* Example: Add padding if rendered directly */
+    /* padding: 1.5rem; */
+    /* background: var(--primary-lighter); */
+    /* border-radius: 0.5rem; */
+    /* Remove default margins inside browser view? */
     margin: 0;
 }
+article h1, article h2, article h3 {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+article p {
+    margin-bottom: 0.8em;
+}
 
-/* Other component styles remain the same... */
+
+/* FAQ styling */
+.faq {
+  margin-top: 1em;
+}
+.faq-item {
+  margin-bottom: 1.5em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid var(--border-color);
+}
+.faq-item:last-child {
+  border-bottom: none;
+}
+.faq-item h3 {
+  font-size: 1.2em;
+  margin-bottom: 0.5em;
+}
+.faq-answer {
+  padding-left: 1em;
+}
+
+/* Technical Term styling */
+.technical-term {
+  border-bottom: 1px dotted var(--primary-color);
+  cursor: help;
+  position: relative; /* For potential tooltips */
+}
+
+cite {
+    font-style: normal;
+    cursor: pointer;
+    color: var(--primary-color);
+    padding: 0 2px;
+}
+cite:hover {
+    text-decoration: underline;
+}
+.references {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid var(--border-color);
+}
+.references h2 {
+    font-size: 1.3em;
+    margin-bottom: 0.8em;
+}
+.references ol {
+    list-style-position: inside;
+    padding-left: 0;
+}
+.references li {
+    margin-bottom: 0.5em;
+}
+.references li a {
+    margin-left: 0.5em;
+    font-size: 0.9em;
+}
+
 
 /* Footer */
 .footer {
@@ -357,72 +468,142 @@ article {
     }
 
     .demo {
-        margin: 1rem;
+        margin: 4rem 1rem 1rem 1rem; /* Adjust top margin for static button */
         padding: 1rem;
     }
 
+    /* Make back button static on mobile */
     .back-button {
         position: static;
         margin: 1rem;
         display: inline-block;
+        width: calc(100% - 2rem); /* Full width minus margins */
         text-align: center;
     }
 
     .browser-content {
         padding: 1rem;
     }
-    
+
+    /* Adjust browser header for smaller screens */
+    .browser-header {
+        padding: 0.5rem;
+    }
+    .browser-address {
+        margin-left: 1rem;
+    }
+    .browser-address input {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+    }
 }
 
-/* Highlight each chunk boundary */
-.content-chunk {
+
+/* ======================================== */
+/* === ContentChunker Visualization Styles === */
+/* ======================================== */
+
+/* Styles for the container holding the chunks in the "Chunk Visualization" section */
+/* This container has the class "chunked-view" applied in the Python code */
+.chunked-view {
+    margin-top: 1rem; /* Add some space above the chunk visualization */
+}
+
+/* Style individual chunks within the chunked-view container */
+.chunked-view .content-chunk {
     border: 2px dashed var(--primary-color);
     background-color: var(--primary-lighter);
     padding: 1rem;
     margin-bottom: 1rem;
     border-radius: 0.5rem;
+    position: relative; /* Needed for the ::before pseudo-element positioning */
 }
 
-/* VS Code style for code blocks */
-.demo .code-container {
-    background: #1e1e1e;
-    color: #d4d4d4;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-    font-size: 0.875rem;
-    line-height: 1.6;
-    white-space: pre;
-    overflow-x: auto;
-    margin: 1rem 0;
+/* Add chunk ID label to each chunk in the visualization */
+.chunked-view .content-chunk::before {
+    content: "Chunk " attr(data-chunk-id); /* Display 'Chunk' + the ID from the data attribute */
+    position: absolute;
+    top: -0.75em; /* Position slightly above the border */
+    right: 0.5rem;
+    background-color: var(--primary-color);
+    color: var(--white);
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 0.15em 0.4em;
+    border-radius: 0.25rem;
+    z-index: 1; /* Ensure it's above the chunk's border/content */
 }
 
-.demo .code-container code {
-    color: #d4d4d4;
-}
-
-/* VS Code header */
-.code-header {
-    background: #323233;
-    color: #d4d4d4;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem 0.5rem 0 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-size: 0.8rem;
-    border-bottom: 1px solid #474747;
-}
-
-pre,
+/* Remove the possibly problematic global pre/code override */
+/* pre,
 code {
     background: #1e1e1e !important;
     color: #ffffff !important;
     padding: 1rem !important;
     border-radius: 0.5rem !important;
+} */
+
+/* NOTE: I have commented out the global pre/code override you had at the end.
+   It's better to use more specific selectors like `.demo pre` and `.demo .code-container`
+   which were already defined earlier in the CSS. Keeping the global `!important`
+   override can lead to unexpected styling issues elsewhere. If you specifically
+   need that global override, you can uncomment it, but it's generally not recommended.
+*/
+
+/* ======================================== */
+/* === Fix for Clunky Rendered Page Preview === */
+/* ======================================== */
+
+/* Target elements *directly inside* the .browser-content div */
+/* to ensure they stack vertically like normal HTML block elements. */
+.browser-content > p,
+.browser-content > h1,
+.browser-content > h2,
+.browser-content > h3,
+.browser-content > h4,
+.browser-content > h5,
+.browser-content > h6,
+.browser-content > ul,
+.browser-content > ol,
+.browser-content > div,
+.browser-content > section,
+.browser-content > article {
+    display: block !important; /* Force block display */
+    position: static !important; /* Force static positioning */
+    float: none !important;     /* Clear floats */
+    width: auto !important;      /* Ensure natural width */
+    margin: 0 0 1rem 0 !important; /* Ensure bottom margin for spacing, reset others */
+    padding: 0 !important;     /* Reset padding */
+    /* Add any other resets needed */
 }
 
-/* Target Code Entered sections specifically */
-.code-entered pre,
-.code-entered pre code {
-    background: #1e1e1e !important;
-    color: #ffffff !important;
+/* Ensure headings inside have appropriate top/bottom margin */
+.browser-content > h1,
+.browser-content > h2,
+.browser-content > h3,
+.browser-content > h4,
+.browser-content > h5,
+.browser-content > h6 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.8rem !important;
 }
+/* First element shouldn't have top margin */
+.browser-content > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* Ensure lists inside have default padding */
+.browser-content > ul,
+.browser-content > ol {
+    padding-left: 1.5rem !important; /* Indent list */
+    margin-left: 0 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Ensure list items behave correctly */
+.browser-content li {
+    display: list-item !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reset link styles within this specific preview if necessary */

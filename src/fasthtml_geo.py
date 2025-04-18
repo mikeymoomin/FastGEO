@@ -180,16 +180,45 @@ class ContentChunker:
     def __ft__(self):
         soup = BeautifulSoup(self.html, "html.parser")
         blocks = soup.find_all(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"])
-        def est(t:str)->int: return max(1, len(t)//4)
-        chunks, cur, tok = [[]], [], 0
+        def est(text: str) -> int:
+            return max(1, len(text.split()))
+        chunks = []  
+        cur: List[Tuple[str, int]] = []
+        tok = 0 
         for b in blocks:
-            t = est(b.get_text())
-            if tok+t>self.max_tokens and cur:
-                chunks[-1]=cur; cur = cur[-self.overlap:]; tok=sum(est(BeautifulSoup(c,'html.parser').get_text()) for c in cur); chunks.append([])
-            cur.append(str(b)); tok += t
-        chunks[-1]=cur if cur else chunks[-1]
-        divs = [Div(NotStr("".join(c)), cls="content-chunk", **{"data-chunk-id": str(i)}) for i,c in enumerate(chunks)]
-        return Div(*divs, cls="optimized-content")
+            block_html = str(b)
+            block_text = b.get_text(strip=True)
+            if not block_text: continue # Skip empty blocks
+
+            t = est(block_text)
+
+            # If adding the current block exceeds the limit, finalize the current chunk
+            if tok + t > self.max_tokens and cur:
+                chunks.append([item[0] for item in cur]) # Store HTML strings only
+
+                # Calculate overlap: take the last `overlap` *elements*
+                overlap_elements = cur[-self.overlap:]
+                # Recalculate token count for the overlap elements
+                tok = sum(item[1] for item in overlap_elements)
+                # Start the new chunk with the overlapping elements
+                cur = overlap_elements
+                # Ensure we don't start with zero tokens if overlap exists
+                if not cur: tok = 0
+                
+            # Add the current block to the current chunk list
+            cur.append((block_html, t))
+            tok += t
+
+        # Add the last chunk if it has content
+        if cur:
+            chunks.append([item[0] for item in cur])
+
+        # Create the final Div structure
+        divs = [
+            Div(NotStr("".join(c)), cls="content-chunk", **{"data-chunk-id": str(i)})
+            for i, c in enumerate(chunks) if c # Ensure chunk is not empty
+        ]
+        return Div(*divs, cls="optimized-content chunked-view")
 
 @dataclass
 class CitationOptimizer:
