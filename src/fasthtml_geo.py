@@ -132,33 +132,44 @@ class FAQOptimizer:
 
 @dataclass
 class TechnicalTermOptimizer:
-    html: str
-    glossary: Dict[str, str]
+    element: Any  # FT component or raw HTML
+    glossary: Dict[str, str]  # term -> definition
 
     def __ft__(self):
-        soup = BeautifulSoup(self.html, "html.parser")
+        # Render the FT element or raw HTML to a string
+        html_body = to_xml(self.element)
+        soup = BeautifulSoup(html_body, "html.parser")
+
+        # Wrap each term occurrence with a <span> and add data-definition
         for txt in soup.find_all(string=True):
-            if txt.parent.name in {"script", "style"}: continue
+            if txt.parent.name in {"script", "style"}:
+                continue
             for term, desc in self.glossary.items():
                 if term in txt:
-                    span = Span(term,
-                    cls="technical-term",
-                    **{"data-definition": desc})
+                    span = Span(term, cls="technical-term", **{"data-definition": desc})
                     span_tag = BeautifulSoup(to_xml(span), "html.parser").span
                     before, _, after = txt.partition(term)
-                    if before: txt.insert_before(before)
+                    if before:
+                        txt.insert_before(before)
                     txt.insert_before(span_tag)
-                    if after:  txt.replace_with(after)
-                    else:      txt.extract() 
-        gloss = Section(H2("Technical Glossary"), *[Dl(Dt(t), Dd(d)) for t, d in self.glossary.items()], id="glossary", cls="technical-glossary")
-        if soup.body:
-            soup.body.append(BeautifulSoup(to_xml(gloss), "html.parser"))
+                    if after:
+                        txt.replace_with(after)
+                    else:
+                        txt.extract()
+
+        # Generate JSON-LD for the glossary (no visible glossary rendered)
         schema = {
             "@context": "https://schema.org",
             "@type": "DefinedTermSet",
-            "definedTerm": [{"@type": "DefinedTerm", "name": t, "description": d} for t, d in self.glossary.items()],
+            "definedTerm": [
+                {"@type": "DefinedTerm", "name": t, "description": d}
+                for t, d in self.glossary.items()
+            ],
         }
+
+        # Return enriched HTML plus embedded JSON-LD only
         return NotStr(_script(schema) + str(soup))
+
 
 @dataclass
 class ContentChunker:

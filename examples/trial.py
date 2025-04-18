@@ -284,7 +284,7 @@ def glossary():
         "self‑attention":"Mechanism where each token attends to all others.",
     }
     raw     = html                                     # plain string baseline
-    helper  = TechnicalTermOptimizer(html=html, glossary=terms)
+    helper  = TechnicalTermOptimizer(html, glossary=terms)
     heading = H1("TechnicalTermOptimizer")
 
     code = """
