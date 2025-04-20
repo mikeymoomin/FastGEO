@@ -370,6 +370,7 @@ article {
     /* border-radius: 0.5rem; */
     /* Remove default margins inside browser view? */
     margin: 0;
+    background-color: white;
 }
 article h1, article h2, article h3 {
     margin-top: 1em;
@@ -377,6 +378,15 @@ article h1, article h2, article h3 {
 }
 article p {
     margin-bottom: 0.8em;
+}
+.browser-content article h1 {
+    font-size: 1.75rem !important; /* Reduce from 2.5rem */
+    margin-bottom: 1rem !important;
+}
+
+.browser-content article h2 {
+    font-size: 1.25rem !important; /* Reduce from 2rem */
+    margin-bottom: 0.75rem !important;
 }
 
 
@@ -554,56 +564,160 @@ code {
 /* === Fix for Clunky Rendered Page Preview === */
 /* ======================================== */
 
-/* Target elements *directly inside* the .browser-content div */
-/* to ensure they stack vertically like normal HTML block elements. */
-.browser-content > p,
-.browser-content > h1,
-.browser-content > h2,
-.browser-content > h3,
-.browser-content > h4,
-.browser-content > h5,
-.browser-content > h6,
-.browser-content > ul,
-.browser-content > ol,
-.browser-content > div,
-.browser-content > section,
-.browser-content > article {
-    display: block !important; /* Force block display */
-    position: static !important; /* Force static positioning */
-    float: none !important;     /* Clear floats */
-    width: auto !important;      /* Ensure natural width */
-    margin: 0 0 1rem 0 !important; /* Ensure bottom margin for spacing, reset others */
-    padding: 0 !important;     /* Reset padding */
-    /* Add any other resets needed */
+/* Target all descendant block-level elements within browser-content */
+/* This is more robust than targeting only direct children */
+.browser-content p,
+.browser-content h1,
+.browser-content h2,
+.browser-content h3,
+.browser-content h4,
+.browser-content h5,
+.browser-content h6,
+.browser-content ul,
+.browser-content ol,
+.browser-content li {
+    display: block !important;    /* Force block display */
+    position: static !important;  /* Prevent positioning issues */
+    float: none !important;       /* Clear floats */
+    width: auto !important;       /* Allow natural width */
+    /* Reset basic box model properties that might interfere */
+    box-sizing: border-box !important;
+    min-width: auto !important;
+    max-width: none !important;
+    /* Reset margins and padding safely */
+    margin: initial !important;
+    padding: initial !important;
 }
 
-/* Ensure headings inside have appropriate top/bottom margin */
-.browser-content > h1,
-.browser-content > h2,
-.browser-content > h3,
-.browser-content > h4,
-.browser-content > h5,
-.browser-content > h6 {
-    margin-top: 1.5rem !important;
-    margin-bottom: 0.8rem !important;
+/* Re-add specific margins for typical block spacing */
+.browser-content p,
+.browser-content ul,
+.browser-content ol {
+    margin-bottom: 1rem !important; /* Add bottom margin to paragraphs and lists */
 }
-/* First element shouldn't have top margin */
+
+.browser-content li {
+    margin-bottom: 0.5rem !important; /* Add bottom margin to list items */
+}
+
+.browser-content h1,
+.browser-content h2,
+.browser-content h3,
+.browser-content h4,
+.browser-content h5,
+.browser-content h6 {
+    margin-top: 1.5rem !important; /* Add top margin to headings */
+    margin-bottom: 0.8rem !important; /* Add bottom margin to headings */
+}
+
+/* Remove top margin from the very first element inside the browser-content */
 .browser-content > *:first-child {
     margin-top: 0 !important;
 }
 
-/* Ensure lists inside have default padding */
-.browser-content > ul,
-.browser-content > ol {
+/* Ensure lists inside have default padding for indentation */
+.browser-content ul,
+.browser-content ol {
     padding-left: 1.5rem !important; /* Indent list */
-    margin-left: 0 !important;
+}
+
+/* Add some spacing for the original browser view itself */
+.website-display .browser-content {
+     padding: 2rem; /* Keep the existing padding */
+}
+
+.browser-content > div > p {
+    display: block !important;
+    width: 100% !important;
     margin-bottom: 1rem !important;
+    clear: both !important;
+}
+/* Ensure proper block display for chunk demo content */
+.browser-content > div,
+.browser-content > p {
+    display: block !important;
+    width: 100% !important;
+    float: none !important;
+    clear: both !important;
 }
 
-/* Ensure list items behave correctly */
-.browser-content li {
+/* Ensure paragraph and block elements in the content chunker display properly */
+.browser-content ul,
+.browser-content ol,
+.browser-content li,
+.browser-content h3 {
+    clear: both !important;
+    float: none !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Add specific styling for Group wrapper if used */
+.browser-content div:has(> p, > ul, > ol, > h3) {
+    display: block !important;
+    width: 100% !important;
+}
+.browser-content-chunk,
+.browser-content-chunk > *,
+.browser-content-chunk div,
+.browser-content-chunk p {
+    display: block !important;
+    flex: none !important;
+    grid-template-columns: none !important;
+    grid-template-rows: none !important;
+    grid-auto-flow: row !important;
+    float: none !important;
+    position: static !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    clear: both !important;
+}
+
+/* Force proper block display on Group component */
+.browser-content-chunk div[class*="Group"],
+.browser-content-chunk > div {
+    display: block !important;
+    width: 100% !important;
+    column-count: 1 !important; /* Disable any multi-column layout */
+}
+
+/* Ensure paragraphs stack vertically with proper spacing */
+.browser-content-chunk p {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 1em !important;
+    box-sizing: border-box !important;
+}
+
+/* Proper spacing for headings */
+.browser-content-chunk h3 {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 0.75em !important;
+}
+
+/* Fix list display */
+.browser-content-chunk ul,
+.browser-content-chunk ol {
+    display: block !important;
+    width: 100% !important;
+    padding-left: 2em !important;
+    margin-bottom: 1em !important;
+}
+
+.browser-content-chunk li {
     display: list-item !important;
-    margin-bottom: 0.5rem !important;
+    width: 100% !important;
+    margin-bottom: 0.5em !important;
 }
 
-/* Reset link styles within this specific preview if necessary */
+/* Disable any CSS columns that might be causing horizontal flow */
+.browser-content-chunk * {
+    columns: auto 1 !important;
+    column-count: 1 !important;
+    column-width: auto !important;
+}

@@ -108,15 +108,15 @@ def chunk_demo(title, raw_component, helper_component, code):
                 ),
                 Div(
                     Input(type="text", value="https://example.com/page", readonly=True),
-                    cls="browser-address"
+                    cls="browser-address-chunk"
                 ),
-                cls="browser-header"
+                cls="browser-header-chunk"
             ),
             # Show the unmodified content as it would normally render
             Div(
                 # Render the original component directly (FastHTML handles tuples/lists)
                 raw_component,
-                cls="browser-content"
+                cls="browser-content-chunk"
             ),
             cls="website-display"
         ),
