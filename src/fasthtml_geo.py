@@ -46,13 +46,7 @@ def _script(j: Dict[str, Any]) -> str:
 
 @dataclass
 class LLMBlock:
-    element: Any         # FT component or raw HTML
-    ctx: str
-    role: str = "summary"
-    schema_type: str | None = None
-
-    def __ft__(self):
-        """
+    """
     **LLMBlock**
 
     Wraps a visible HTML element (created by FastHTML or raw HTML) and
@@ -89,6 +83,12 @@ class LLMBlock:
     The JSON-LD includes the provided context (`llmContext`), role, schema type,
     and a timestamp (`dateCreated`).
     """
+    element: Any         # FT component or raw HTML
+    ctx: str
+    role: str = "summary"
+    schema_type: str | None = None
+
+    def __ft__(self):
         json_ld = {
             "@context": "https://schema.org",
             "@type": self.schema_type or "WebPageElement",
@@ -323,7 +323,8 @@ class ContentChunker:
     overlap: int = 50
 
     def __ft__(self):
-        soup = BeautifulSoup(self.html, "html.parser")
+        raw_html_string = to_xml(self.html)
+        soup = BeautifulSoup(raw_html_string, "html.parser")
         blocks = soup.find_all(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote"])
         def est(text: str) -> int:
             return max(1, len(text.split()))

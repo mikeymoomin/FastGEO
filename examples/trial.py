@@ -381,12 +381,9 @@ def chunk_route(): # Renamed function slightly to avoid conflict with built-in '
         P("Final paragraph after the list.")
     )
 
-    # *** Convert the FastHTML components to an HTML string ***
-    raw_html_string = to_xml(body_components)
-
     # Apply the ContentChunker helper to the HTML string
     # max_tokens controls approximate chunk size; overlap ensures smooth transitions
-    helper = ContentChunker(raw_html_string, max_tokens=30, overlap=1) # Reduced max_tokens for demo
+    helper = ContentChunker(body_components, max_tokens=30, overlap=1) # Reduced max_tokens for demo
 
     # Page heading
     heading = "ContentChunker" # Just the text for the H1
