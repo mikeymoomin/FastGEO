@@ -83,7 +83,7 @@ class LLMBlock:
     The JSON-LD includes the provided context (`llmContext`), role, schema type,
     and a timestamp (`dateCreated`).
     """
-    element: Any         # FT component or raw HTML
+    element: Any         
     ctx: str
     role: str = "summary"
     schema_type: str | None = None
@@ -96,7 +96,6 @@ class LLMBlock:
             "dateCreated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
             "llmContext": self.ctx.strip(),
         }
-        # Return a small fragment: <element> ... <script>JSON‑LD</script>
         return Group(
             self.element,
             NotStr(_script(json_ld)),
@@ -165,7 +164,6 @@ class SemanticArticle:
         container = Article(*art,
                             itemscope=True,
                             itemtype="https://schema.org/Article")
-                            # Convert the FT tree to real markup
         html_body = to_xml(container)
         return NotStr(_script(schema) + html_body)
 
@@ -245,15 +243,13 @@ class TechnicalTermOptimizer:
     `<span>` tags and the schema.org `DefinedTermSet` JSON-LD `<script>` tag
     appended.
     """
-    element: Any  # FT component or raw HTML
-    glossary: Dict[str, str]  # term -> definition
+    element: Any  
+    glossary: Dict[str, str]  
 
     def __ft__(self):
-        # Render the FT element or raw HTML to a string
         html_body = to_xml(self.element)
         soup = BeautifulSoup(html_body, "html.parser")
 
-        # Wrap each term occurrence with a <span> and add data-definition
         for txt in soup.find_all(string=True):
             if txt.parent.name in {"script", "style"}:
                 continue
@@ -270,7 +266,6 @@ class TechnicalTermOptimizer:
                     else:
                         txt.extract()
 
-        # Generate JSON-LD for the glossary (no visible glossary rendered)
         schema = {
             "@context": "https://schema.org",
             "@type": "DefinedTermSet",
@@ -280,7 +275,6 @@ class TechnicalTermOptimizer:
             ],
         }
 
-        # Return enriched HTML plus embedded JSON-LD only
         return NotStr(_script(schema) + str(soup))
 
 
@@ -334,35 +328,27 @@ class ContentChunker:
         for b in blocks:
             block_html = str(b)
             block_text = b.get_text(strip=True)
-            if not block_text: continue # Skip empty blocks
+            if not block_text: continue
 
             t = est(block_text)
 
-            # If adding the current block exceeds the limit, finalize the current chunk
             if tok + t > self.max_tokens and cur:
-                chunks.append([item[0] for item in cur]) # Store HTML strings only
+                chunks.append([item[0] for item in cur]) 
 
-                # Calculate overlap: take the last `overlap` *elements*
                 overlap_elements = cur[-self.overlap:]
-                # Recalculate token count for the overlap elements
                 tok = sum(item[1] for item in overlap_elements)
-                # Start the new chunk with the overlapping elements
                 cur = overlap_elements
-                # Ensure we don't start with zero tokens if overlap exists
                 if not cur: tok = 0
                 
-            # Add the current block to the current chunk list
             cur.append((block_html, t))
             tok += t
 
-        # Add the last chunk if it has content
         if cur:
             chunks.append([item[0] for item in cur])
 
-        # Create the final Div structure
         divs = [
             Div(NotStr("".join(c)), cls="content-chunk", **{"data-chunk-id": str(i)})
-            for i, c in enumerate(chunks) if c # Ensure chunk is not empty
+            for i, c in enumerate(chunks) if c
         ]
         return Div(*divs, cls="optimized-content chunked-view")
 
@@ -372,11 +358,10 @@ class CitationOptimizer:
     Inserts a sequential <cite>[n]</cite> for a single citation,
     and accumulates its metadata for the final bibliography.
     """
-    element: Any                       # FT component or raw HTML
-    citation_id: Any                   # ID of this citation
-    cite_list: List[Dict[str, Any]]    # Full list of citation metadata
+    element: Any                       
+    citation_id: Any                   
+    cite_list: List[Dict[str, Any]]  
 
-    # Shared across all CitationInline instances:
     _order_map: ClassVar[Dict[str, int]] = {}
     _processed: ClassVar[List[Dict[str, Any]]] = []
     _counter: ClassVar[int] = 0
@@ -391,11 +376,9 @@ class CitationOptimizer:
         html_body = to_xml(self.element)
         soup = BeautifulSoup(html_body, "html.parser")
 
-        # Find or auto‑insert the marker span
         cid = str(self.citation["id"])
         marker = soup.find("span", class_="citation-marker", attrs={"data-citation-id": cid})
         if not marker:
-            # put it at end of first paragraph (or body)
             parent = soup.find("p") or (soup.body or soup)
             marker = BeautifulSoup(
                 f'<span class="citation-marker" data-citation-id="{cid}"></span>',
@@ -403,7 +386,6 @@ class CitationOptimizer:
             ).span
             parent.append(marker)
 
-        # Assign sequential number & replace with <cite>[n]</cite>
         if cid not in type(self)._order_map:
             type(self)._counter += 1
             type(self)._order_map[cid] = type(self)._counter
@@ -423,10 +405,9 @@ class CitationBibliography:
     Once you’ve in‑lined all of your citations with CitationInline,
     add this at the very end to render ONE References section + JSON‑LD.
     """
-    cite_list: List[Dict[str, Any]]    # Same list you passed to CitationInline
+    cite_list: List[Dict[str, Any]]    
 
     def __ft__(self):
-        # Build the <ol> in order of in‑text appearance
         items = []
         for cited in CitationOptimizer._processed:
             auth = ", ".join(cited.get("authors", []))
@@ -443,7 +424,6 @@ class CitationBibliography:
             Ol(*items),
             id="references", cls="references"
         )
-        # JSON‑LD
         schema = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
@@ -460,7 +440,6 @@ class CitationBibliography:
             ],
         }
 
-        # Render both the section and the <script> tag
         return NotStr(
             to_xml(refs_section)
             + _script(schema)
