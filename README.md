@@ -1,308 +1,178 @@
-# SEO & LLM Optimizer for FastHTML
+# fasthtml_geo
 
-This library helps you make your website more discoverable by search engines (SEO) and AI systems (LLM EO) while using FastHTML.
+**Generative Engine Optimization for FastHTML Applications**
 
-## What does it do?
+`fasthtml_geo` extends [FastHTML](https://github.com/fasthtml/fasthtml) with tools for optimizing your content for both traditional search engines and next-generation AI-powered search experiences (Generative Engine Optimization).
 
-It adds special machine-readable data to your website that is invisible to visitors but helps:
-- Search engines better understand your content (better rankings)
-- AI systems better understand your content (better responses)
+## What is GEO?
 
-## Components Overview
+Generative Engine Optimization (GEO) is the practice of structuring web content to be better understood by Large Language Models (LLMs) that power modern search engines and AI assistants. While SEO focuses on keywords and technical elements, GEO emphasizes semantic structure, context, and machine-readable metadata.
 
-### 1. LLMBlock - The Building Block
-
-Wraps any HTML element and adds hidden context for AI systems.
-
-```python
-# Example: Add context to an image
-image = LLMBlock(
-    Img(src="cat.jpg", alt="A cat"),  # Your regular HTML element
-    ctx="A playful tabby cat sitting on a windowsill",  # Hidden context for AI
-    role="image-description"
-)
-```
-
-#### Output:
-
-```html
-<img src="cat.jpg" alt="A cat"/>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebPageElement",
-  "role": "image-description",
-  "dateCreated": "2025-01-23T12:00:00Z",
-  "llmContext": "A playful tabby cat sitting on a windowsill"
-}
-</script>
-```
-
-### 2. SemanticArticle - For Blog Posts/Articles
-
-Creates properly structured articles that search engines love.
-
-```python
-# Example: Create an article
-article = SemanticArticle(
-    title="How to Train Your Dragon",
-    sections=[
-        {"heading": "Introduction", "content": "Dragons are awesome..."},
-        {"heading": "Training Steps", "content": "First, gain trust..."}
-    ],
-    metadata={"author": "John Doe", "datePublished": "2025-01-23"}
-)
-```
-
-#### Output:
-
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "How to Train Your Dragon",
-  "articleSection": ["Introduction", "Training Steps"],
-  "author": "John Doe",
-  "datePublished": "2025-01-23"
-}
-</script>
-<article itemscope itemtype="https://schema.org/Article">
-  <h1 itemprop="headline">How to Train Your Dragon</h1>
-  <div class="article-metadata">
-    <meta itemprop="author" content="John Doe">
-    <meta itemprop="datePublished" content="2025-01-23">
-  </div>
-  <section>
-    <h2 itemprop="about">Introduction</h2>
-    <div itemprop="articleBody">Dragons are awesome...</div>
-  </section>
-  <section>
-    <h2 itemprop="about">Training Steps</h2>
-    <div itemprop="articleBody">First, gain trust...</div>
-  </section>
-</article>
-```
-
-### 3. FAQOptimizer - For Q&A Pages
-
-Creates FAQ pages that can show up as rich snippets in Google.
-
-```python
-# Example: Create FAQ section
-faq = FAQOptimizer([
-    ("What is Python?", "Python is a programming language..."),
-    ("Is it hard to learn?", "No, Python is beginner-friendly...")
-])
-```
-
-#### Output:
-
-
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is Python?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Python is a programming language..."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is it hard to learn?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "No, Python is beginner-friendly..."
-      }
-    }
-  ]
-}
-</script>
-<section class="faq">
-  <div class="faq-item" id="faq-0">
-    <h3 class="faq-question">What is Python?</h3>
-    <div class="faq-answer">Python is a programming language...</div>
-  </div>
-  <div class="faq-item" id="faq-1">
-    <h3 class="faq-question">Is it hard to learn?</h3>
-    <div class="faq-answer">No, Python is beginner-friendly...</div>
-  </div>
-</section>
-```
-
-### 4. TechnicalTermOptimizer - For Technical Content
-
-Highlights technical terms and creates a glossary.
-
-```python
-# Example: Add technical terms and definition
-html_content = "<p>We use machine learning for predictions.</p>"
-glossary = {
-    "machine learning": "AI that learns from data",
-    "predictions": "Forecasting future outcomes"
-}
-optimized = TechnicalTermOptimizer(html_content, glossary)
-```
-
-#### Output:
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "DefinedTermSet",
-  "definedTerm": [
-    {
-      "@type": "DefinedTerm",
-      "name": "machine learning",
-      "description": "AI that learns from data"
-    },
-    {
-      "@type": "DefinedTerm",
-      "name": "predictions",
-      "description": "Forecasting future outcomes"
-    }
-  ]
-}
-</script>
-<p>We use <span class="technical-term" data-definition="AI that learns from data">machine learning</span> for <span class="technical-term" data-definition="Forecasting future outcomes">predictions</span>.</p>
-<section id="glossary" class="technical-glossary">
-  <h2>Technical Glossary</h2>
-  <dl>
-    <dt>machine learning</dt>
-    <dd>AI that learns from data</dd>
-    <dt>predictions</dt>
-    <dd>Forecasting future outcomes</dd>
-  </dl>
-</section>
-```
-
-### 5. ContentChunker - For Long Content
-
-Breaks long content into manageable pieces for AI systems.
-
-```python
-# Example: Chunk a long article
-chunker = ContentChunker(
-    html_content,
-    max_tokens=500,  # Each chunk will be ~500 tokens
-    overlap=50       # Chunks will share 50 tokens for context
-)
-```
-
-#### Output: 
-
-```html
-<div class="optimized-content">
-  <div class="content-chunk" data-chunk-id="0">
-    <p>This is the first paragraph.</p>
-    <p>This is the second paragraph.</p>
-  </div>
-  <div class="content-chunk" data-chunk-id="1">
-    <p>This is the second paragraph.</p>
-    <p>This is the third paragraph.</p>
-  </div>
-  <div class="content-chunk" data-chunk-id="2">
-    <p>This is the third paragraph.</p>
-    <p>This is the fourth paragraph.</p>
-  </div>
-</div>
-```
-
-### 6. CitationOptimizer - For Academic/Research Content
-
-Handles citations and creates reference lists.
-
-```python
-# Example: Add citations to content
-citations = [
-    {
-        "id": 1,
-        "authors": ["Jane Smith"],
-        "title": "AI Research",
-        "publisher": "Science Journal",
-        "date": "2025"
-    }
-]
-optimizer = CitationOptimizer(html_content, citations)
-```
-
-#### Output:
-
-```html
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ScholarlyArticle",
-  "citation": [
-    {
-      "@type": "CreativeWork",
-      "name": "AI Research",
-      "author": ["Jane Smith"],
-      "publisher": "Science Journal",
-      "datePublished": "2025",
-      "url": "https://example.com/ai"
-    }
-  ]
-}
-</script>
-<p>AI is transforming technology <cite id="cite-1" itemscope itemtype="https://schema.org/CreativeWork">[1]</cite>.</p>
-<section id="references" class="references">
-  <h2>References</h2>
-  <ol>
-    <li id="ref-1">Jane Smith. "AI Research". Science Journal 2025. <a href="https://example.com/ai">https://example.com/ai</a></li>
-  </ol>
-</section>
-```
+This library bridges the gap between traditional SEO and emerging GEO requirements, helping you create content that's optimized for both humans and machines.
 
 ## Installation
 
-1. Install dependencies:
 ```bash
-pip install fasthtml beautifulsoup4
+pip install fasthtml-geo
 ```
 
-2. Copy the library to your project
+## Key Components
 
-## Quick Start
+### LLMBlock
+
+Attaches hidden context to HTML elements specifically for LLMs to better understand your content.
 
 ```python
-from fasthtml_geo import LLMBlock, SemanticArticle, FAQOptimizer
+from fasthtml_geo import LLMBlock
 
-# Optimize a simple element
-button = LLMBlock(
-    Button("Click me"),
-    ctx="Button for submitting the contact form"
+# Basic usage
+element = LLMBlock(
+    P("Hello World!"), 
+    "Friendly greeting in page header"
 )
-
-# Create an SEO-optimized article
-article = SemanticArticle(
-    title="My First Article",
-    sections=[{"heading": "Introduction", "content": "This is my article..."}]
-)
-
-# Add FAQs to your page
-faq = FAQOptimizer([
-    ("How do I start?", "First, install the library..."),
-    ("Is it free?", "Yes, it's open source...")
-])
 ```
 
-## Best Practices
+### SemanticArticle
 
-1. Keep context descriptions short and accurate
-2. Use proper headings and semantic HTML
-3. Don't overuse technical terms
-4. Test your markup with Google's Rich Results test
-5. Keep chunks at reasonable sizes (300-800 tokens)
+Structures articles with proper schema.org markup for enhanced discoverability.
 
-## Need Help?
+```python
+from fasthtml_geo import SemanticArticle
 
-- Read the code comments for more details
-- Check schema.org for markup specifications
-- Test your results with Google Search Console
+sections = [
+    {"heading": "Introduction", "content": P("Generative engines..."), "level": 2},
+    {"heading": "Why GEO?", "content": P("LLMs rank semantics, not keywords."), "level": 2},
+]
+
+article = SemanticArticle(
+    title="GEO in a Nutshell",
+    sections=sections,
+    metadata={"author": "Jane Dev", "datePublished": "2025-04-17"},
+)
+```
+
+### FAQOptimizer
+
+Transforms FAQ content into schema.org format for better search engine visibility and rich results.
+
+```python
+from fasthtml_geo import FAQOptimizer
+
+qa_pairs = [
+    ("What is GEO?", "Optimizing pages so LLM-driven search surfaces them."),
+    ("Does GEO replace SEO?", "No – they complement each other."),
+]
+
+faq = FAQOptimizer(qa_pairs=qa_pairs)
+```
+
+### TechnicalTermOptimizer
+
+Highlights and defines technical terms with semantic markup and glossaries.
+
+```python
+from fasthtml_geo import TechnicalTermOptimizer
+
+content = P("Transformers rely on self-attention for sequence modeling.")
+terms = {
+    "transformer": "Neural network architecture based on attention.",
+    "self-attention": "Mechanism where each token attends to all others.",
+}
+
+glossary = TechnicalTermOptimizer(content, glossary=terms)
+```
+
+### ContentChunker
+
+Splits content into optimized chunks for better LLM processing, which can help with handling long-form content.
+
+```python
+from fasthtml_geo import ContentChunker
+
+# Create some content
+body_components = Group(
+    P("Lorem ipsum dolor sit amet, consectetur adipiscing elit."),
+    P("Vivamus vitae ligula in elit porttitor egestas."),
+    H3("A Subheading"),
+    Ul(Li("First item."), Li("Second item."), Li("Third item.")),
+)
+
+# Create chunks
+chunked_content = ContentChunker(body_components, max_tokens=500, overlap=50)
+```
+
+### CitationOptimizer
+
+Transforms citations into semantic markup for academic and reference content.
+
+```python
+from fasthtml_geo import CitationOptimizer, CitationBibliography
+
+citations = [
+    {
+        "id": 1,
+        "title": "Attention Is All You Need",
+        "authors": ["Vaswani, A.", "et al."],
+        "publisher": "NeurIPS",
+        "date": "2017",
+        "url": "https://arxiv.org/abs/1706.03762",
+    },
+    {
+        "id": 2,
+        "title": "Another Great Paper",
+        "authors": ["Author B", "et al."],
+        "publisher": "Journal X",
+        "date": "2020",
+        "url": "https://example.com/paper2",
+    }
+]
+
+# Add citation references in the text
+content_with_citation = CitationOptimizer(
+    P("Deep learning has revolutionized NLP."), 
+    1, 
+    citations
+)
+
+# Add bibliography at the end of your document
+bibliography = CitationBibliography(citations)
+```
+
+## Demo Application
+
+The library includes a demo application in `examples/trial.py` that showcases each component. Run it locally to see examples in action:
+
+```bash
+python examples/trial.py
+```
+
+This will start a local server with interactive examples of each component.
+
+## Why Use fasthtml_geo?
+
+- **Future-proof content**: Optimize for both traditional and AI-powered search engines
+- **Enhanced content understanding**: Help LLMs better comprehend your content's structure and meaning
+- **Rich metadata**: Provide context that improves how your content is processed and represented
+- **Improved discoverability**: Make your content more findable in the age of generative search
+- **SEO compatibility**: All optimizations maintain or enhance traditional SEO benefits
+
+## Utility Functions
+
+### information_density
+
+Calculates the information density of a text, which can be useful for optimizing content:
+
+```python
+from fasthtml_geo import information_density
+
+score = information_density("Your text here")
+print(f"Information density score: {score}")
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
