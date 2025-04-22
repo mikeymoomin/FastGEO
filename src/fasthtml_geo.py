@@ -15,9 +15,9 @@ import json, math
 from dataclasses import dataclass
 from datetime import datetime
 from collections import Counter
-from typing import Any, Union, List, Dict, Tuple
+from typing import Any, Union, List, Dict, Tuple, ClassVar
 
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup, Tag
 from fasthtml.common import * 
 
 __all__ = [
@@ -369,117 +369,102 @@ class ContentChunker:
 @dataclass
 class CitationOptimizer:
     """
-    **CitationOptimizer**
-
-    Manages a *single* specific citation within HTML content, facilitating
-    in-text citation and including it in a generated bibliography section. It supports:
-
-    1.  **Auto-insertion:** If a citation marker (`<span class="citation-marker" data-citation-id="...">`)
-        for the specified `citation_id` is not present in the input `element`,
-        it can auto-insert one at the end of the content.
-    2.  **Replacement:** Replaces the specific citation marker `<span>` tag
-        with a proper `<cite>` element (e.g., `[1]`).
-    3.  **References List:** Appends a "References" section (`<section>`)
-        with an ordered list (`<ol>`) containing *only* the specified citation.
-    4.  **Schema.org JSON-LD:** Embeds `ScholarlyArticle` schema.org JSON-LD
-        containing the metadata for the specified citation.
-
-    Note: Like `TechnicalTermOptimizer`, this class operates on the rendered
-    HTML string using BeautifulSoup.
-
-    **Parameters:**
-
-    * **`element`** (`Any`):
-        The FastHTML component or raw HTML string where the citation should be
-        managed and the references list appended.
-    * **`citation_id`** (`Any`):
-        The ID of the specific citation to find and process within the `cite_list`.
-    * **`cite_list`** (`List[Dict[str, Any]]`):
-        A list of dictionaries, where each dictionary contains metadata for a
-        citation. The class will find the dictionary matching `citation_id`.
-        Each dictionary should include at least an `"id"` (e.g., 1, 2, "ref-a")
-        and `"title"`. Other common keys include `"authors"` (list of strings),
-        `"publisher"`, `"date"`, and `"url"`.
-
-    **Returns:**
-
-    A FastHTML `NotStr` containing the modified HTML (with the `<cite>` tag and
-    the references section) and the schema.org `ScholarlyArticle` JSON-LD
-    `<script>` tag appended.
+    Inserts a sequential <cite>[n]</cite> for a single citation,
+    and accumulates its metadata for the final bibliography.
     """
-    element: Any  # FT component or raw HTML
-    citation_id: Any # The ID of the specific citation to process
-    cite_list: List[Dict[str, Any]]  # The full list of citation metadata dicts
+    element: Any                       # FT component or raw HTML
+    citation_id: Any                   # ID of this citation
+    cite_list: List[Dict[str, Any]]    # Full list of citation metadata
+
+    # Shared across all CitationInline instances:
+    _order_map: ClassVar[Dict[str, int]] = {}
+    _processed: ClassVar[List[Dict[str, Any]]] = []
+    _counter: ClassVar[int] = 0
 
     def __post_init__(self):
-        # Filter the cite_list to find the single relevant citation
-        matched_citations = [c for c in self.cite_list if c.get("id") == self.citation_id]
-        if not matched_citations:
-            raise ValueError(f"Citation with ID '{self.citation_id}' not found in the provided cite_list.")
-        if len(matched_citations) > 1:
-            print(f"Warning: Multiple citations found with ID '{self.citation_id}'. Using the first one.") # Or raise an error
-        self.citation = matched_citations[0]
+        matches = [c for c in self.cite_list if c["id"] == self.citation_id]
+        if not matches:
+            raise ValueError(f"Citation ID {self.citation_id!r} not found")
+        self.citation = matches[0]
 
     def __ft__(self):
-        # Serialize the FT component (or raw HTML) to a string
         html_body = to_xml(self.element)
         soup = BeautifulSoup(html_body, "html.parser")
-        # Determine insertion target (body if present)
-        target = soup.body if soup.body else soup
 
-        cid_str = str(self.citation["id"])
+        # Find or auto‑insert the marker span
+        cid = str(self.citation["id"])
+        marker = soup.find("span", class_="citation-marker", attrs={"data-citation-id": cid})
+        if not marker:
+            # put it at end of first paragraph (or body)
+            parent = soup.find("p") or (soup.body or soup)
+            marker = BeautifulSoup(
+                f'<span class="citation-marker" data-citation-id="{cid}"></span>',
+                "html.parser"
+            ).span
+            parent.append(marker)
 
-        # Auto-insert span marker if the user did not provide any
-        if not soup.find(
-            "span", class_="citation-marker", attrs={"data-citation-id": cid_str}
-        ):
-            marker_html = f'<span class="citation-marker" data-citation-id="{cid_str}"></span>'
-            marker_tag = BeautifulSoup(marker_html, "html.parser").span
-            target.append(marker_tag)
+        # Assign sequential number & replace with <cite>[n]</cite>
+        if cid not in type(self)._order_map:
+            type(self)._counter += 1
+            type(self)._order_map[cid] = type(self)._counter
+            type(self)._processed.append(self.citation)
 
-        # Replace all markers with proper <cite> elements for this specific citation
-        for m in soup.find_all(
-            "span", class_="citation-marker", attrs={"data-citation-id": cid_str}
-        ):
-            cite_html = f"<cite id='cite-{cid_str}'>[{cid_str}]</cite>"
-            cite_tag = BeautifulSoup(cite_html, "html.parser").cite
-            m.replace_with(cite_tag)
+        seq = type(self)._order_map[cid]
+        cite_tag = soup.new_tag("cite", id=f"cite-{cid}")
+        cite_tag.string = f"[{seq}]"
+        marker.replace_with(cite_tag)
 
-        # Build the references list for this single citation
-        c = self.citation # The single citation dict
-        refs = [
-            Li(
-                f"{', '.join(c.get('authors', []))}. \"{c['title']}\". {c.get('publisher','')} {c.get('date','')}",
-                A(c['url'], href=c['url']) if c.get('url') else None
-            )
-        ] # Note: This now creates a list with only one Li element
-        refs_section = to_xml(
-            Section(
-                H2("References"),
-                Ol(*refs), # Pass the single Li element
-                id="references", cls="references"
-            )
+        return NotStr(str(soup))
+
+
+@dataclass
+class CitationBibliography:
+    """
+    Once you’ve in‑lined all of your citations with CitationInline,
+    add this at the very end to render ONE References section + JSON‑LD.
+    """
+    cite_list: List[Dict[str, Any]]    # Same list you passed to CitationInline
+
+    def __ft__(self):
+        # Build the <ol> in order of in‑text appearance
+        items = []
+        for cited in CitationOptimizer._processed:
+            auth = ", ".join(cited.get("authors", []))
+            title = cited["title"]
+            pub = cited.get("publisher", "")
+            date = cited.get("date", "")
+            url = cited.get("url", "")
+            text = f'{auth}. "{title}". {pub} {date}'
+            li = Li(text, A(url, href=url) if url else None)
+            items.append(li)
+
+        refs_section = Section(
+            H2("References"),
+            Ol(*items),
+            id="references", cls="references"
         )
-        target.append(BeautifulSoup(refs_section, "html.parser"))
-
-        # Generate JSON-LD for this single citation
+        # JSON‑LD
         schema = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
-            "citation": [ # This list will contain only the single citation's data
+            "citation": [
                 {
                     "@type": "CreativeWork",
-                    "name": c.get("title"),
+                    "name": c["title"],
                     "author": c.get("authors", []),
                     "publisher": c.get("publisher"),
                     "datePublished": c.get("date"),
                     "url": c.get("url")
                 }
+                for c in CitationOptimizer._processed
             ],
         }
 
-        # Return the enriched HTML plus embedded schema
-        return NotStr(_script(schema) + str(soup))
+        # Render both the section and the <script> tag
+        return NotStr(
+            to_xml(refs_section)
+            + _script(schema)
+        )
     
 
 # ---------------------------------------------------------------------------

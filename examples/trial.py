@@ -6,6 +6,7 @@ sys.path.insert(0, ROOT)
 from fasthtml.common import *
 from src.fasthtml_geo import *
 from html import escape    
+from src.fasthtml_geo import CitationBibliography
 
 hdrs = [
     Meta(charset='UTF-8'),
@@ -134,6 +135,62 @@ def chunk_demo(title, raw_component, helper_component, code):
         H2("Crawler HTML – AFTER helper"),
         Pre(Code(escape(after_html))),  # Escape the processed HTML string
 
+        cls="demo",
+        id="landing-page-content"
+    )
+
+def cite_demo(title, raw_component, helper_component, code, references):
+    "Little utility that renders the three viewpoints."
+    before = to_xml(raw_component)            # what crawlers saw *before*
+    after  = to_xml(helper_component)         # what they see *after*
+    
+    # Extract text from the title if it's a FastHTML element
+    title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
+    
+    return Main(
+        Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
+        title,
+        
+        # VS Code style code display
+        H2("Code Entered"),
+        Div(
+            Pre(
+                Code(NotStr(code)),
+                cls="code-container"
+            )
+        ),
+      
+        H2("Rendered page"),
+        Div(
+            # Browser header
+            Div(
+                Div(
+                    Div(cls="browser-dot red"),
+                    Div(cls="browser-dot yellow"),
+                    Div(cls="browser-dot green"),
+                    cls="browser-dots"
+                ),
+                Div(
+                    Input(type="text", value="https://example.com/page", readonly=True),
+                    cls="browser-address"
+                ),
+                cls="browser-header"
+            ),
+            # Browser content
+            Div(
+                helper_component,
+                references,
+                cls="browser-content"
+            ),
+            cls="website-display"
+        ),
+        
+        H2("Crawler HTML – BEFORE helper"),
+        Pre(Code(NotStr(escape(before)))),        # plain markup
+        
+        H2("Crawler HTML – AFTER helper"),
+        Pre(Code(NotStr(escape(after)))),         # enriched markup
+        
         cls="demo",
         id="landing-page-content"
     )
@@ -435,9 +492,11 @@ def cite():
 
     # 2) Build your FT component and invoke the CitationOptimizer directly
     #    passing the HTML element, the specific citation ID, and the full list.
-    body    = P("Deep learning has revolutionised NLP")
+    body    = P("Deep learning has revolutionised NLP as shown in Another Great Paper")
     # The function call is now: CitationOptimizer(HTML, citation_id, cite_list)
-    helper  = CitationOptimizer(body, 1, cites) # <-- New signature here
+    helper  = CitationOptimizer(body, 2, cites) # <-- New signature here
+
+    references = CitationBibliography(cites)
 
     # 3) Show the exact same syntax in the demo panel
     code = """
@@ -459,10 +518,11 @@ cites = [{
 }]
 
 # Direct call with the new signature
-CitationOptimizer(P("Deep learning has revolutionised NLP"), 1, cites)
+CitationOptimizer(P("Deep learning has revolutionised NLP"), 2, cites)
+CitationBibliography(cites)
 """
 
     heading = H1("CitationOptimizer")
-    return crawler_demo(heading, body, helper, code)
+    return cite_demo(heading, body, helper, code, references)
 
 serve()
