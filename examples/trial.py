@@ -415,7 +415,7 @@ helper = ContentChunker(raw_html_string, max_tokens=30, overlap=1)
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
 def cite():
-    # 1) Your raw citation metadata
+    # 1) Your raw citation metadata (full list)
     cites = [{
         "id": 1,
         "title": "Attention Is All You Need",
@@ -423,20 +423,23 @@ def cite():
         "publisher": "NeurIPS",
         "date": "2017",
         "url": "https://arxiv.org/abs/1706.03762",
+    },
+    {
+        "id": 2,
+        "title": "Another Great Paper",
+        "authors": ["Author B", "et al."],
+        "publisher": "Journal X",
+        "date": "2020",
+        "url": "https://example.com/paper2",
     }]
 
-    # 2) Wrap into a small helper that picks out the right citation object
-    def CitationOptimiser(element, citation_id):
-        # Find the single citation dict matching the given id
-        matched = [c for c in cites if c["id"] == citation_id]
-        # Pass that list into the real CitationOptimizer class
-        return CitationOptimizer(element, citations=matched)
-
-    # 3) Build your FT component and invoke the wrapper
+    # 2) Build your FT component and invoke the CitationOptimizer directly
+    #    passing the HTML element, the specific citation ID, and the full list.
     body    = P("Deep learning has revolutionised NLP")
-    helper  = CitationOptimiser(body, 1)  # <-- only two args here
+    # The function call is now: CitationOptimizer(HTML, citation_id, cite_list)
+    helper  = CitationOptimizer(body, 1, cites) # <-- New signature here
 
-    # 4) Show the exact same syntax in the demo panel
+    # 3) Show the exact same syntax in the demo panel
     code = """
 cites = [{
     "id": 1,
@@ -445,12 +448,21 @@ cites = [{
     "publisher": "NeurIPS",
     "date": "2017",
     "url": "https://arxiv.org/abs/1706.03762",
+},
+{
+    "id": 2,
+    "title": "Another Great Paper",
+    "authors": ["Author B", "et al."],
+    "publisher": "Journal X",
+    "date": "2020",
+    "url": "https://example.com/paper2",
 }]
 
-CitationOptimiser(P("Deep learning has revolutionised NLP"), 1)
+# Direct call with the new signature
+CitationOptimizer(P("Deep learning has revolutionised NLP"), 1, cites)
 """
 
-    heading = H1("CitationOptimiser")
+    heading = H1("CitationOptimizer")
     return crawler_demo(heading, body, helper, code)
 
 serve()
