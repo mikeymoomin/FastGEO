@@ -25,14 +25,13 @@ def crawler_demo(title, raw_component, helper_component, code):
     before = to_xml(raw_component)            # what crawlers saw *before*
     after  = to_xml(helper_component)         # what they see *after*
     
-    # Extract text from the title if it's a FastHTML element
     title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
     
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
         
-        # VS Code style code display
+        # Code Display
         H2("Code Entered"),
         Div(
             Pre(
@@ -43,7 +42,7 @@ def crawler_demo(title, raw_component, helper_component, code):
       
         H2("Rendered page"),
         Div(
-            # Browser header
+            # Page rendering section
             Div(
                 Div(
                     Div(cls="browser-dot red"),
@@ -66,10 +65,10 @@ def crawler_demo(title, raw_component, helper_component, code):
         ),
         
         H2("Crawler HTML – BEFORE helper"),
-        Pre(Code(NotStr(escape(before)))),        # plain markup
+        Pre(Code(NotStr(escape(before)))),        
         
         H2("Crawler HTML – AFTER helper"),
-        Pre(Code(NotStr(escape(after)))),         # enriched markup
+        Pre(Code(NotStr(escape(after)))),      
         
         cls="demo",
         id="landing-page-content"
@@ -141,17 +140,15 @@ def chunk_demo(title, raw_component, helper_component, code):
 
 def cite_demo(title, raw_component, helper_component, code, references):
     "Little utility that renders the three viewpoints."
-    before = to_xml(raw_component)            # what crawlers saw *before*
-    after  = to_xml(helper_component)         # what they see *after*
+    before = to_xml(raw_component)           
+    after  = to_xml(helper_component)        
     
-    # Extract text from the title if it's a FastHTML element
     title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') else str(title)
     
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
         title,
         
-        # VS Code style code display
         H2("Code Entered"),
         Div(
             Pre(
@@ -162,7 +159,6 @@ def cite_demo(title, raw_component, helper_component, code, references):
       
         H2("Rendered page"),
         Div(
-            # Browser header
             Div(
                 Div(
                     Div(cls="browser-dot red"),
@@ -176,7 +172,6 @@ def cite_demo(title, raw_component, helper_component, code, references):
                 ),
                 cls="browser-header"
             ),
-            # Browser content
             Div(
                 helper_component,
                 references,
@@ -186,10 +181,10 @@ def cite_demo(title, raw_component, helper_component, code, references):
         ),
         
         H2("Crawler HTML – BEFORE helper"),
-        Pre(Code(NotStr(escape(before)))),        # plain markup
+        Pre(Code(NotStr(escape(before)))),       
         
         H2("Crawler HTML – AFTER helper"),
-        Pre(Code(NotStr(escape(after)))),         # enriched markup
+        Pre(Code(NotStr(escape(after)))),       
         
         cls="demo",
         id="landing-page-content"
@@ -197,7 +192,7 @@ def cite_demo(title, raw_component, helper_component, code, references):
 
 @rt("/")
 def home():
-    home_main_content = Main(id="landing-page-content")(    # HTMX-enabled nav links
+    home_main_content = Main(id="landing-page-content")(   
         # Hero Section
         Div(
             H1("fasthtml_geo"),
@@ -362,26 +357,25 @@ def chunk_demo(title, raw_component, helper_component, code):
     """Utility to render raw page, chunk highlight, and crawler views"""
     # Ensure raw_component is serialized if it's not already a string
     before_html = raw_component if isinstance(raw_component, str) else to_xml(raw_component)
-    after_html  = to_xml(helper_component) # helper_component.__ft__() returns FT object
+    after_html  = to_xml(helper_component) 
 
     # Extract text from the title if it's a FastHTML element
     title_text = title if isinstance(title, str) else title.children[0] if hasattr(title, 'children') and title.children else str(title)
 
     return Main(
         Button(hx_get="/", hx_target="#landing-page-content", hx_push_url="true", cls="back-button")("← Back to Home"),
-        H1(title_text), # Use H1 for consistency
+        H1(title_text), 
 
         H2("Code Entered"),
         Div(
             Pre(
-                Code(NotStr(code)), # Use NotStr here for pre-formatted code
+                Code(NotStr(code)), 
                 cls="code-container"
             )
         ),
 
         H2("Rendered Page (Original)"),
         Div(
-            # Browser mock header
             Div(
                 Div(
                     Div(cls="browser-dot red"),
@@ -395,9 +389,7 @@ def chunk_demo(title, raw_component, helper_component, code):
                 ),
                 cls="browser-header"
             ),
-            # Show the unmodified content as it would normally render
             Div(
-                # Render the original component directly (FastHTML handles tuples/lists)
                 raw_component,
                 cls="browser-content"
             ),
@@ -406,28 +398,24 @@ def chunk_demo(title, raw_component, helper_component, code):
 
         H2("Chunk Visualization"),
         Div(
-            # Show the chunked content with highlighting/borders (add CSS for .chunked-view .content-chunk)
-            helper_component, # Renders the output of ContentChunker.__ft__()
-            cls="browser-content" # Re-use class for consistent padding/style
+            helper_component, 
+            cls="browser-content"
         ),
 
         H2("Crawler HTML – BEFORE helper"),
-        Pre(Code(escape(before_html))), # Escape the raw HTML string
+        Pre(Code(escape(before_html))), 
 
         H2("Crawler HTML – AFTER helper"),
-        Pre(Code(escape(after_html))),  # Escape the processed HTML string
+        Pre(Code(escape(after_html))),  
 
         cls="demo",
         id="landing-page-content"
     )
 
-# ... (home, llmblock, article, faq, glossary routes) ...
-
 # --- Updated /chunk route ---
 @rt("/chunk")
-def chunk_route(): # Renamed function slightly to avoid conflict with built-in 'get'
-    # A big blob of HTML content defined using FastHTML components
-    body_components = Group( # Wrap in Group or similar if multiple top-level elements
+def chunk_route(): 
+    body_components = Group( 
         P("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce Mollis."),
         P("Vivamus vitae ligula in elit porttitor egestas. Nam ut eleifend dui."),
         P("Praesent fermentum, urna ac sollicitudin sodales, enim nisl bibendum orci, vel eleifend."),
@@ -438,12 +426,9 @@ def chunk_route(): # Renamed function slightly to avoid conflict with built-in '
         P("Final paragraph after the list.")
     )
 
-    # Apply the ContentChunker helper to the HTML string
-    # max_tokens controls approximate chunk size; overlap ensures smooth transitions
     helper = ContentChunker(body_components, max_tokens=30, overlap=1) # Reduced max_tokens for demo
 
-    # Page heading
-    heading = "ContentChunker" # Just the text for the H1
+    heading = "ContentChunker" 
 
     code = f"""
 # Original FastHTML components (example)
@@ -464,15 +449,11 @@ raw_html_string = to_xml(body_components)
 # Apply chunker
 helper = ContentChunker(raw_html_string, max_tokens=30, overlap=1)
 """
-
-    # Render using the updated chunk_demo
-    # Pass the *original components* for rendering, and the helper instance
     return chunk_demo(heading, body_components, helper, code)
 
 # 6) CitationOptimizer ─────────────────────────────────────────────────────
 @rt("/cite")
 def cite():
-    # 1) Your raw citation metadata (full list)
     cites = [{
         "id": 1,
         "title": "Attention Is All You Need",
@@ -490,15 +471,11 @@ def cite():
         "url": "https://example.com/paper2",
     }]
 
-    # 2) Build your FT component and invoke the CitationOptimizer directly
-    #    passing the HTML element, the specific citation ID, and the full list.
     body    = P("Deep learning has revolutionised NLP as shown in Another Great Paper")
-    # The function call is now: CitationOptimizer(HTML, citation_id, cite_list)
-    helper  = CitationOptimizer(body, 2, cites) # <-- New signature here
+    helper  = CitationOptimizer(body, 2, cites) 
 
     references = CitationBibliography(cites)
 
-    # 3) Show the exact same syntax in the demo panel
     code = """
 cites = [{
     "id": 1,
