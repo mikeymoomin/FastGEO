@@ -10,11 +10,9 @@ Generative Engine Optimization (GEO) is the practice of structuring web content 
 
 This library bridges the gap between traditional SEO and emerging GEO requirements, helping you create content that's optimized for both humans and machines.
 
-## Installation
+## To use
 
-```bash
-pip install fasthtml-geo
-```
+Clone the library to your project.
 
 ## Key Components
 
@@ -175,4 +173,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Apache License - see the LICENSE file for details.
